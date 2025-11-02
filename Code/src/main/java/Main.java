@@ -1,110 +1,165 @@
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.File;
-import java.util.concurrent.TimeUnit;
+import Cruzamentos.Cruzamento;
+import OutrasClasses.Saida;
+import PontosEntrada.GeradorVeiculos;
+import Veiculo.Veiculo;
 
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Classe Main - Orquestrador da Simulação de Tráfego Urbano
+ * Gerencia a inicialização e finalização de todos os processos usando ProcessBuilder.
+ *
+ * Versão Simplificada: apenas E3 → Cr3 → S
+ */
 public class Main {
 
-    public static void main(String[] args) throws Exception {
-        System.out.println("╔════════════════════════════════════╗");
-        System.out.println("║  SISTEMA DE TRÁFEGO URBANO - SD    ║");
-        System.out.println("╚════════════════════════════════════╝\n");
+    // Configurações de portas
+    private static final int PORTA_CR3 = 8003;
+    private static final int PORTA_SAIDA = 9100;
 
-        long inicio = System.currentTimeMillis();
+    // Configurações de simulação
+    private static final int NUM_VEICULOS = 10;
+    private static final GeradorVeiculos.ModoGeracao MODO_GERACAO = GeradorVeiculos.ModoGeracao.FIXO;
+    private static final long INTERVALO_FIXO_MS = 2000; // 2 segundos entre veículos
+    private static final double TAXA_POISSON = 0.5;     // 0.5 veículos/segundo (alternativa)
 
-        String classpath = System.getProperty("java.class.path");
-        String javaHome = System.getProperty("java.home");
-        String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
+    // Controla quais entradas estão ativas
+    private static final boolean ATIVAR_E1 = false;
+    private static final boolean ATIVAR_E2 = false;
+    private static final boolean ATIVAR_E3 = true;
 
-        System.out.println("📂 Classpath: " + classpath);
-        System.out.println("☕ Java: " + javaBin + "\n");
+    private static final List<Process> processos = new ArrayList<>();
 
-        int totalVeiculos = 50;
-        int intervalo = 500;
+    public static void main(String[] args) {
+        System.out.println("╔════════════════════════════════════════════════╗");
+        System.out.println("║   SIMULADOR DE TRÁFEGO URBANO DISTRIBUÍDO      ║");
+        System.out.println("║        Sistemas Distribuídos 2025/2026         ║");
+        System.out.println("╚════════════════════════════════════════════════╝");
+        System.out.println();
+        System.out.println("Versão Simplificada: E3 → Cr3 → S");
+        System.out.println();
 
-        // 1️⃣ Dashboard
-        System.out.println("Lançando Dashboard...");
-        Process pDash = new ProcessBuilder(javaBin, "-cp", classpath, "Dashboard.Dashboard", "9000")
-                .inheritIO().start();
-        aguardar(1200);
+        Runtime.getRuntime().addShutdownHook(new Thread(Main::finalizarSimulacao));
 
-        // 2️⃣ Saída
-        System.out.println("Lançando Saída...");
-        ProcessBuilder pbSaida = new ProcessBuilder(javaBin, "-cp", classpath,
-                "OutrasClasses.Saida", "7000", "127.0.0.1", "9000");
-        pbSaida.redirectErrorStream(true);
-        Process pSaida = pbSaida.start();
-        BufferedReader saidaReader = new BufferedReader(new InputStreamReader(pSaida.getInputStream()));
-        aguardar(1000);
-
-        // 3️⃣ Cruzamento3
-        System.out.println("🚀 Lançando Cruzamento3...");
-        Process pCr3 = new ProcessBuilder(javaBin, "-cp", classpath, "Cruzamento.Cruzamento3")
-                .inheritIO().start();
-        aguardar(1500);
-
-        // 4️⃣ Controlador de Entradas (gera E1, E2 e E3 dentro dele)
-        System.out.printf("🚀 Lançando ControladorEntradas... (%d veículos totais, %d ms intervalo)%n",
-                totalVeiculos, intervalo);
-
-        Process pEntradas = new ProcessBuilder(javaBin, "-cp", classpath,
-                "EntradaVeiculos.ControladorEntradas", "127.0.0.1",
-                String.valueOf(totalVeiculos), String.valueOf(intervalo))
-                .inheritIO().start();
-
-        System.out.println("\n✅ Todos os processos lançados!");
-        System.out.println("Pressione CTRL+C para terminar manualmente...\n");
-
-        // Aguarda entradas terminarem
-        pEntradas.waitFor();
-        System.out.println("\nTodas as entradas concluíram o envio de veículos.");
-        System.out.println("Aguardando que todos cheguem à saída...");
-
-        // 🔄 Monitoriza a saída até todos os veículos chegarem
-        boolean todosChegaram = false;
-        String linha;
-        while ((linha = saidaReader.readLine()) != null) {
-            if (linha.contains("FIM_SISTEMA")) {
-                todosChegaram = true;
-                System.out.println("🏁 Todos os veículos realmente saíram do sistema!");
-                break;
-            }
-        }
-
-        if (!todosChegaram) {
-            System.out.println("⚠️ Timeout: nem todos os veículos chegaram à saída (possível bloqueio).");
-        }
-
-        aguardar(2000);
-
-        // 🛑 Encerrar processos (excepto Dashboard)
-        System.out.println("🛑 Encerrando sistema...");
-        encerrarProcesso(pCr3, "Cruzamento3");
-        encerrarProcesso(pSaida, "Saída");
-
-        System.out.println("✅ Dashboard permanece aberto para visualização dos resultados.");
-        System.out.println("Feche a janela do Dashboard manualmente quando quiser.\n");
-
-        long duracao = System.currentTimeMillis() - inicio;
-        System.out.printf("🕒 Simulação completa em %.2f segundos.%n", duracao / 1000.0);
-    }
-
-    private static void aguardar(int ms) {
-        try { Thread.sleep(ms); } catch (InterruptedException ignored) {}
-    }
-
-    private static void encerrarProcesso(Process p, String nome) {
         try {
-            if (p != null && p.isAlive()) {
-                System.out.println("Encerrando " + nome + "...");
-                p.destroy();
-                if (!p.waitFor(2000, TimeUnit.MILLISECONDS)) {
-                    p.destroyForcibly();
-                    System.out.println("⚠️ " + nome + " forçado a terminar.");
-                }
-            }
+            executarComProcessos();
         } catch (Exception e) {
-            System.err.println("Erro ao encerrar " + nome + ": " + e.getMessage());
+            System.err.println("Erro durante a simulação: " + e.getMessage());
+            e.printStackTrace();
         }
+    }
+
+    private static void executarComProcessos() throws Exception {
+        // 0. Dashboard
+        System.out.println("[Main] Iniciando Dashboard Swing...");
+        Process dashboard = iniciarProcesso("Dashboard.DashboardUI");
+        processos.add(dashboard);
+        Thread.sleep(2000);
+
+        // 1. Saída
+        System.out.println("[Main] Iniciando processo Saída (porta " + PORTA_SAIDA + ")...");
+        Process saida = iniciarProcesso("OutrasClasses.Saida", String.valueOf(PORTA_SAIDA));
+        processos.add(saida);
+        Thread.sleep(2000);
+
+        // 2. Cruzamento Cr3
+        System.out.println("[Main] Iniciando processo Cruzamento Cr3 (porta " + PORTA_CR3 + ")...");
+        Process cr3 = iniciarProcesso("Cruzamentos.Cruzamento", "Cr3", String.valueOf(PORTA_CR3));
+        processos.add(cr3);
+        Thread.sleep(2000);
+
+        // 3. Geradores de veículos
+        if (ATIVAR_E1) {
+            System.out.println("[Main] (Desativado neste cenário) Gerador E1.");
+        }
+        if (ATIVAR_E2) {
+            System.out.println("[Main] (Desativado neste cenário) Gerador E2.");
+        }
+        if (ATIVAR_E3) {
+            System.out.println("[Main] Iniciando Gerador de Veículos (E3)...\n");
+            executarGerador("E3", PORTA_CR3);
+        }
+
+        System.out.println("\n[Main] Aguardando processamento final dos veículos (15s)...");
+        Thread.sleep(15000);
+
+        System.out.println("[Main] Finalizando processos...");
+        finalizarProcessos();
+
+        System.out.println("\n[Main] Simulação concluída!");
+    }
+
+    private static Process iniciarProcesso(String classe, String... args) throws IOException {
+        String classpath = detectarClasspath();
+
+        List<String> comando = new ArrayList<>();
+        comando.add("java");
+        comando.add("-cp");
+        comando.add(classpath);
+        comando.add(classe);
+        for (String arg : args) comando.add(arg);
+
+        System.out.println("[Main] Comando: " + String.join(" ", comando));
+
+        ProcessBuilder pb = new ProcessBuilder(comando);
+        pb.inheritIO();
+        return pb.start();
+    }
+
+    private static String detectarClasspath() {
+        String cp = System.getProperty("java.class.path");
+        if (cp.contains("target/classes") || cp.contains("out/production") || cp.contains("bin"))
+            return cp;
+
+        File target = new File("target/classes");
+        if (target.exists()) return target.getAbsolutePath();
+        File bin = new File("bin");
+        if (bin.exists()) return bin.getAbsolutePath();
+
+        return ".";
+    }
+
+    private static void executarGerador(String entrada, int porta) throws Exception {
+        String classpath = detectarClasspath();
+        List<String> comando = new ArrayList<>(List.of(
+                "java", "-cp", classpath,
+                "PontosEntrada.GeradorVeiculos",
+                entrada,
+                String.valueOf(porta),
+                MODO_GERACAO.toString()
+        ));
+
+        comando.add(MODO_GERACAO == GeradorVeiculos.ModoGeracao.FIXO
+                ? String.valueOf(INTERVALO_FIXO_MS)
+                : String.valueOf(TAXA_POISSON));
+
+        comando.add(String.valueOf(NUM_VEICULOS));
+
+        System.out.println("[Main] Comando gerador: " + String.join(" ", comando));
+
+        ProcessBuilder pb = new ProcessBuilder(comando);
+        pb.inheritIO();
+        Process proc = pb.start();
+        proc.waitFor();
+    }
+
+    private static void finalizarProcessos() {
+        for (Process p : processos) {
+            if (p.isAlive()) {
+                p.destroy();
+                try {
+                    p.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+                } catch (InterruptedException ignored) {}
+                if (p.isAlive()) p.destroyForcibly();
+            }
+        }
+        processos.clear();
+    }
+
+    private static void finalizarSimulacao() {
+        System.out.println("\n[Main] Finalizando simulação...");
+        finalizarProcessos();
     }
 }

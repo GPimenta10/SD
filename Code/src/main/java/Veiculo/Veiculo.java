@@ -1,115 +1,186 @@
 package Veiculo;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.ArrayList;
+
+import PontosEntrada.PontoEntrada;
 
 /**
- * Representa um veículo que circula no sistema de tráfego.
- * Cada veículo possui informações sobre o seu percurso, tempos e registos de passagem.
- * Os tempos são armazenados em milissegundos (long) para facilitar cálculos.
+ * Representa um veículo no sistema de tráfego
+ * Serializável para transmissão via sockets
  */
 public class Veiculo implements Serializable {
-
     private static final long serialVersionUID = 1L;
 
+    // Atributos do veículo
     private String id;
-    private TipoVeiculo tipo;
-    private String origem;
-    private List<String> percurso;
-
-    // Timestamps principais
-    private long tempoChegada;             // Quando entrou no sistema
-    private long tempoSaida;               // Quando saiu do sistema
-    private long timestampEntradaFila;     // Quando entrou numa fila de semáforo
-
-    // Métricas adicionais
-    private long tempoTotalEspera;         // Soma total do tempo em filas (ms)
-
-    // Rastreio de passagens
-    private List<String> cruzamentosPorOndePassou;
-    private List<String> semaforosPorOndePassou;
+    private final TipoVeiculo tipo;
+    private final PontoEntrada pontoEntrada;
+    private final long tempoChegada;
+    private long tempoSaida;
+    private final List<String> caminho;
+    private int indiceCaminhoAtual;
 
     /**
-     * Construtor principal.
+     * Construtor do Veiculo
+     *
+     *
+     * @param id ID do Veiculo
+     * @param tipo Tipo de Veiculo
+     * @param pontoEntrada Ponto pelo qual entrou no sistema
+     * @param caminho Caminho percorrido desde que entrou até que saiu
      */
-    public Veiculo(String id, TipoVeiculo tipo, String origem, List<String> percurso) {
+    public Veiculo(String id, TipoVeiculo tipo, PontoEntrada pontoEntrada, List<String> caminho) {
         this.id = id;
         this.tipo = tipo;
-        this.origem = origem;
-        this.percurso = percurso;
+        this.pontoEntrada = pontoEntrada;
         this.tempoChegada = System.currentTimeMillis();
-        this.cruzamentosPorOndePassou = new ArrayList<>();
-        this.semaforosPorOndePassou = new ArrayList<>();
-        this.tempoTotalEspera = 0;
-    }
-
-    // ========== MÉTODOS PRINCIPAIS ==========
-
-    /**
-     * Regista a saída do sistema (define tempo de saída).
-     */
-    public void registrarSaida() {
-        this.tempoSaida = System.currentTimeMillis();
+        this.tempoSaida = -1;
+        this.caminho = new ArrayList<>(caminho);
+        this.indiceCaminhoAtual = 0;
     }
 
     /**
-     * Regista a passagem por um cruzamento.
+     *  Get ID
+     *
+     * @return Retorna o ID do veículo
      */
-    public void registrarPassagemCruzamento(String nomeCruzamento) {
-        cruzamentosPorOndePassou.add(nomeCruzamento);
+    public String getId() {
+        return id;
     }
 
     /**
-     * Regista a passagem por um semáforo.
+     * Get TIPO
+     *
+     * @return Retorna o Tipo do veículo
      */
-    public void registrarPassagemSemaforo(String nomeSemaforo) {
-        semaforosPorOndePassou.add(nomeSemaforo);
+    public TipoVeiculo getTipo() {
+        return tipo;
     }
 
     /**
-     * Calcula o tempo total que o veículo permaneceu no sistema.
+     * GET PontoEntrada
+     *
+     * @return Retorna o Ponto de entrada do veículo
      */
-    public long calcularTempoNoSistema() {
+    public PontoEntrada getPontoEntrada() {
+        return pontoEntrada;
+    }
+
+    /**
+     * GET TempoChegada
+     *
+     * @return Retorna o instante em que o veículo chegou
+     */
+    public long getTempoChegada() {
+        return tempoChegada;
+    }
+
+    /**
+     * GET TempoSaida
+     *
+     * @return Retorna o instante em que o veículo saiu
+     */
+    public long getTempoSaida() {
+        return tempoSaida;
+    }
+
+    /**
+     * Get Caminho
+     *
+     * @return Retorna o caminho percorrido pelo veículo
+     */
+    public List<String> getCaminho() {
+        return new ArrayList<>(caminho);
+    }
+
+    /**
+     * Get DwellingTime
+     *
+     * @return Retorna o tempo total no sistema (dwelling time)
+     */
+    public long getDwellingTime() {
+        if (tempoSaida == -1) {
+            return -1;
+        }
         return tempoSaida - tempoChegada;
     }
 
     /**
-     * Calcula o tempo de deslocamento entre nós com base no tipo do veículo.
-     * @param tempoBase tempo base de deslocamento (por exemplo, tcarro)
+     * Get ProximoNO
+     *
+     * @return Retorna o próximo nó no caminho
      */
-    public long tempoDeslocamentoBase(long tempoBase) {
-        return (long) (tempoBase * tipo.getFatorVelocidade());
+    public String getProximoNo() {
+        if (caminho.size() > 1)
+            return caminho.get(1); // o próximo nó após o atual
+        else
+            return caminho.get(0);
     }
 
     /**
-     * Adiciona tempo de espera (em milissegundos) ao total acumulado.
+     * Set ID
+     *
+     * @param id Atribui um ID ao veículo
      */
-    public void adicionarEspera(long duracao) {
-        tempoTotalEspera += duracao;
+    public void setId(String id) {
+        this.id = id;
     }
 
-    // ========== GETTERS/SETTERS ==========
-
-    public String getId() { return id; }
-    public TipoVeiculo getTipo() { return tipo; }
-    public String getOrigem() { return origem; }
-    public List<String> getPercurso() { return percurso; }
-    public long getTempoChegada() { return tempoChegada; }
-    public long getTempoSaida() { return tempoSaida; }
-    public long getTimestampEntradaFila() { return timestampEntradaFila; }
-    public List<String> getCruzamentosPorOndePassou() { return cruzamentosPorOndePassou; }
-    public List<String> getSemaforosPorOndePassou() { return semaforosPorOndePassou; }
-    public long getTempoTotalEspera() { return tempoTotalEspera; }
-
-    public void setTimestampEntradaFila(long timestamp) {
-        this.timestampEntradaFila = timestamp;
+    /**
+     * Marca o tempo de saída do sistema
+     *
+     * @param tempoSaida Instante em que o veículo saiu do sistema
+     */
+    public void setTempoSaida(long tempoSaida) {
+        this.tempoSaida = tempoSaida;
     }
 
-    // ========== REPRESENTAÇÃO EM STRING ==========
+    /**
+     * Avança para o próximo nó do caminho
+     *
+     */
+    public void avancarCaminho() {
+        indiceCaminhoAtual++;
+    }
 
+    /**
+     * Verifica se o veículo já chegou ao destino final do seu percurso.
+     *
+     * O veículo mantém internamente um índice (`indiceCaminhoAtual`)
+     * que representa a sua posição atual na lista de nós (`caminho`).
+     * Quando este índice atinge ou ultrapassa o tamanho da lista,
+     * significa que o veículo completou o trajeto definido.
+     *
+     * @return True se o veículo chegou ao destino final; false caso contrário
+     */
+    public boolean chegouAoDestino() {
+        return indiceCaminhoAtual >= caminho.size();
+    }
+
+    /**
+     * Calcula o tempo estimado de deslocamento do veículo
+     * com base no tipo e num tempo base de referência.
+     *
+     * O resultado é o tempo de deslocamento ajustado
+     * multiplicando o tempo base pelo fator do tipo de veículo.
+     *
+     * @param tempoBaseCarro tempo de deslocamento base (em milissegundos) assumindo um carro como referência
+     * @return tempo ajustado de deslocamento para este veículo (em milissegundos)
+     */
+    public long calcularTempoDeslocamento(long tempoBaseCarro) {
+        return (long) (tempoBaseCarro * tipo.getFatorVelocidade());
+    }
+
+    /**
+     * Metodo toString
+     *
+     * @return Informação do veículo como String
+     */
     @Override
     public String toString() {
-        return "Veiculo{id='" + id + "', tipo=" + tipo + ", origem='" + origem + "', percurso=" + percurso + "}";
+        return String.format("Veiculo[id=%s, tipo=%s, entrada=%s, caminho=%s]",
+                id.substring(0, 8), tipo, pontoEntrada, caminho);
     }
 }

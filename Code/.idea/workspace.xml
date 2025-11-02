@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4e4fa084-af6d-461c-8358-c7956110641b" name="Changes" comment="" />
+    <list default="true" id="49fdbbf2-ad32-4d16-908b-a7cd6e0ac91b" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -18,22 +18,18 @@
     </option>
   </component>
   <component name="ProjectColorInfo">{
-  &quot;associatedIndex&quot;: 1
+  &quot;associatedIndex&quot;: 2
 }</component>
-  <component name="ProjectId" id="34kLWBhACec200O2gBzNqqbkhsB" />
+  <component name="ProjectId" id="34v92syFIfQizL6b6EEZoabsiSf" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "Application.Cruzamento3.executor": "Run",
-    "Application.Dashboard.executor": "Run",
     "Application.Main.executor": "Run",
-    "Application.Saida.executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "ignore.virus.scanning.warn.message": "true",
     "kotlin-language-version-configured": "true"
   }
 }]]></component>
@@ -46,11 +42,11 @@
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="4e4fa084-af6d-461c-8358-c7956110641b" name="Changes" comment="" />
-      <created>1761752652910</created>
+      <changelist id="49fdbbf2-ad32-4d16-908b-a7cd6e0ac91b" name="Changes" comment="" />
+      <created>1762082974498</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1761752652910</updated>
+      <updated>1762082974498</updated>
     </task>
     <servers />
   </component>
