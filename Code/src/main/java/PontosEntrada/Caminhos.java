@@ -20,7 +20,7 @@ public class Caminhos {
         double p = random.nextDouble();
 
         switch (entrada) {
-            case E1 -> {
+            /*case E1 -> {
                 if (p < 0.34) {
                     return Arrays.asList("Cr1", "Cr4", "Cr5", "S");
                 } else if (p < 0.67) {
@@ -37,15 +37,17 @@ public class Caminhos {
                 } else {
                     return Arrays.asList("Cr2", "Cr1", "Cr4", "Cr5", "S");
                 }
-            }
+            }*/
             case E3 -> {
-                if (p < 0.34) {
+                return Arrays.asList("Cr3", "S");
+                /*if (p < 0.34) {
                     return Arrays.asList("Cr3", "S");
-                } else if (p < 0.67) {
+                }
+                else if (p < 0.67) {
                     return Arrays.asList("Cr3", "Cr2", "Cr5", "S");
                 } else {
                     return Arrays.asList("Cr3", "Cr2", "Cr1", "Cr4", "Cr5", "S");
-                }
+                }*/
             }
             default -> {
                 return Collections.singletonList("S");

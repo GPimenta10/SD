@@ -1,5 +1,7 @@
 package Veiculo;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.List;
 import java.util.ArrayList;
@@ -8,7 +10,7 @@ import PontosEntrada.PontoEntrada;
 
 /**
  * Representa um veículo no sistema de tráfego
- * Serializável para transmissão via sockets
+ *
  */
 public class Veiculo implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -24,12 +26,6 @@ public class Veiculo implements Serializable {
 
     /**
      * Construtor do Veiculo
-     *
-     *
-     * @param id ID do Veiculo
-     * @param tipo Tipo de Veiculo
-     * @param pontoEntrada Ponto pelo qual entrou no sistema
-     * @param caminho Caminho percorrido desde que entrou até que saiu
      */
     public Veiculo(String id, TipoVeiculo tipo, PontoEntrada pontoEntrada, List<String> caminho) {
         this.id = id;
@@ -42,63 +38,57 @@ public class Veiculo implements Serializable {
     }
 
     /**
-     *  Get ID
      *
-     * @return Retorna o ID do veículo
+     * @return
      */
     public String getId() {
         return id;
     }
 
     /**
-     * Get TIPO
      *
-     * @return Retorna o Tipo do veículo
+     * @return
      */
     public TipoVeiculo getTipo() {
         return tipo;
     }
 
     /**
-     * GET PontoEntrada
      *
-     * @return Retorna o Ponto de entrada do veículo
+     * @return
      */
     public PontoEntrada getPontoEntrada() {
         return pontoEntrada;
     }
 
     /**
-     * GET TempoChegada
      *
-     * @return Retorna o instante em que o veículo chegou
+     * @return
      */
     public long getTempoChegada() {
         return tempoChegada;
     }
 
     /**
-     * GET TempoSaida
      *
-     * @return Retorna o instante em que o veículo saiu
+     * @return
      */
     public long getTempoSaida() {
         return tempoSaida;
     }
 
     /**
-     * Get Caminho
      *
-     * @return Retorna o caminho percorrido pelo veículo
+     * @return
      */
     public List<String> getCaminho() {
         return new ArrayList<>(caminho);
     }
 
     /**
-     * Get DwellingTime
+     * Retorna o tempo total no sistema (dwelling time)
      *
-     * @return Retorna o tempo total no sistema (dwelling time)
+     * @return
      */
     public long getDwellingTime() {
         if (tempoSaida == -1) {
@@ -108,79 +98,87 @@ public class Veiculo implements Serializable {
     }
 
     /**
-     * Get ProximoNO
+     * Retorna o próximo nó no caminho.
      *
-     * @return Retorna o próximo nó no caminho
+     * @return
      */
     public String getProximoNo() {
-        if (caminho.size() > 1)
-            return caminho.get(1); // o próximo nó após o atual
-        else
-            return caminho.get(0);
+        if (indiceCaminhoAtual < caminho.size()) {
+            return caminho.get(indiceCaminhoAtual);
+        } else {
+            // Já chegou ao destino final
+            return "S"; // ou lançar exceção, depende da lógica
+        }
     }
 
     /**
-     * Set ID
      *
-     * @param id Atribui um ID ao veículo
+     *
+     * @param id
      */
     public void setId(String id) {
         this.id = id;
     }
 
     /**
-     * Marca o tempo de saída do sistema
      *
-     * @param tempoSaida Instante em que o veículo saiu do sistema
+     *
+     * @param tempoSaida
      */
     public void setTempoSaida(long tempoSaida) {
         this.tempoSaida = tempoSaida;
     }
 
     /**
-     * Avança para o próximo nó do caminho
-     *
+     * Avança para o próximo nó do caminho.
      */
     public void avancarCaminho() {
-        indiceCaminhoAtual++;
+        if (indiceCaminhoAtual < caminho.size()) {
+            indiceCaminhoAtual++;
+        }
     }
 
     /**
-     * Verifica se o veículo já chegou ao destino final do seu percurso.
-     *
-     * O veículo mantém internamente um índice (`indiceCaminhoAtual`)
-     * que representa a sua posição atual na lista de nós (`caminho`).
-     * Quando este índice atinge ou ultrapassa o tamanho da lista,
-     * significa que o veículo completou o trajeto definido.
-     *
-     * @return True se o veículo chegou ao destino final; false caso contrário
+     * Verifica se o veículo já chegou ao destino final.
      */
     public boolean chegouAoDestino() {
         return indiceCaminhoAtual >= caminho.size();
     }
 
     /**
-     * Calcula o tempo estimado de deslocamento do veículo
-     * com base no tipo e num tempo base de referência.
-     *
-     * O resultado é o tempo de deslocamento ajustado
-     * multiplicando o tempo base pelo fator do tipo de veículo.
-     *
-     * @param tempoBaseCarro tempo de deslocamento base (em milissegundos) assumindo um carro como referência
-     * @return tempo ajustado de deslocamento para este veículo (em milissegundos)
+     * Calcula o tempo estimado de deslocamento do veículo.
      */
     public long calcularTempoDeslocamento(long tempoBaseCarro) {
         return (long) (tempoBaseCarro * tipo.getFatorVelocidade());
     }
 
     /**
-     * Metodo toString
-     *
-     * @return Informação do veículo como String
+     * Retorna o índice atual no caminho (para debug/estatísticas).
      */
+    public int getIndiceCaminhoAtual() {
+        return indiceCaminhoAtual;
+    }
+
     @Override
     public String toString() {
-        return String.format("Veiculo[id=%s, tipo=%s, entrada=%s, caminho=%s]",
-                id.substring(0, 8), tipo, pontoEntrada, caminho);
+        return String.format("Veiculo[id=%s, tipo=%s, entrada=%s, caminho=%s, posição=%d/%d]",
+                id.length() > 8 ? id.substring(0, 8) : id,
+                tipo,
+                pontoEntrada,
+                caminho,
+                indiceCaminhoAtual,
+                caminho.size());
+    }
+
+    /**
+     * Restaura o estado do objeto após desserialização.
+     */
+    private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
+        ois.defaultReadObject();
+
+        // Garante que o índice não aponte novamente para o ponto atual
+        if (indiceCaminhoAtual == 0 && caminho.size() > 1) {
+            indiceCaminhoAtual = 1;
+        }
     }
 }

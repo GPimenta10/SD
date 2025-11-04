@@ -1,13 +1,15 @@
 package OutrasClasses;
 
 import Dashboard.ComunicadorDashboard;
-import Veiculo.TipoVeiculo;
+import Veiculo.Veiculo;
 import java.io.*;
 import java.net.*;
 
 /**
  * Processo que representa o ponto de saída (S).
- * Recebe veículos finalizados e delega o cálculo de estatísticas e comunicação.
+ *
+ * ALTERAÇÃO: Recebe objetos Veiculo serializados com todo o histórico
+ * (caminho completo, tempos, etc) para estatísticas precisas.
  */
 public class Saida {
 
@@ -16,7 +18,6 @@ public class Saida {
     private volatile boolean executando;
 
     private final EstatisticasSaida estatisticas;
-
 
     public Saida(int portaEntrada) {
         this.portaEntrada = portaEntrada;
@@ -27,7 +28,7 @@ public class Saida {
     public void iniciar() {
         try {
             serverSocket = new ServerSocket(portaEntrada);
-            System.out.printf("[Saída] Processo iniciado na porta %d%n", portaEntrada);
+            System.out.printf("[Saída] Processo iniciado na porta %d [MODO SERIALIZADO]%n", portaEntrada);
 
             while (executando) {
                 Socket clienteSocket = serverSocket.accept();
@@ -35,44 +36,80 @@ public class Saida {
             }
 
         } catch (IOException e) {
-            System.err.printf("[Saída] Erro ao iniciar: %s%n", e.getMessage());
+            if (executando) {
+                System.err.printf("[Saída] Erro ao iniciar: %s%n", e.getMessage());
+            }
         } finally {
             finalizar();
         }
     }
 
+    /**
+     * Processa conexão de um cliente (cruzamento enviando veículos).
+     */
     private void processarCliente(Socket socket) {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-            String linha;
-            while ((linha = reader.readLine()) != null) {
-                processarVeiculo(linha.trim());
+        try (ObjectInputStream ois = new ObjectInputStream(socket.getInputStream())) {
+            System.out.println("[Saída] Cliente conectado [MODO SERIALIZADO]");
+
+            while (true) {
+                try {
+                    // Recebe objeto Veiculo serializado
+                    Veiculo veiculo = (Veiculo) ois.readObject();
+                    processarVeiculo(veiculo);
+
+                } catch (EOFException e) {
+                    // Cliente fechou conexão normalmente
+                    System.out.println("[Saída] Cliente desconectado");
+                    break;
+                } catch (ClassNotFoundException e) {
+                    System.err.printf("[Saída] Classe Veiculo não encontrada: %s%n", e.getMessage());
+                }
             }
         } catch (IOException e) {
             System.err.printf("[Saída] Erro ao processar cliente: %s%n", e.getMessage());
         }
     }
 
-    private void processarVeiculo(String mensagem) {
-        // Formato esperado: VEICULO|id|tipo|tempoChegadaSistema
-        String[] partes = mensagem.split("\\|");
-        if (partes.length < 4 || !partes[0].equals("VEICULO")) return;
-
-        String id = partes[1];
-        TipoVeiculo tipo = TipoVeiculo.valueOf(partes[2]);
-        long tempoChegada = Long.parseLong(partes[3]);
+    /**
+     * Processa veículo que chegou à saída.
+     * IMPORTANTE: Agora recebe o objeto completo com todo o histórico!
+     */
+    private void processarVeiculo(Veiculo veiculo) {
+        // Marca tempo de saída
         long tempoSaida = System.currentTimeMillis();
+        veiculo.setTempoSaida(tempoSaida);
 
-        long dwelling = tempoSaida - tempoChegada;
-        estatisticas.registrarVeiculo(tipo, dwelling);
+        // Calcula dwelling time (tempo total no sistema)
+        long dwelling = veiculo.getDwellingTime();
 
-        System.out.printf("[Saída] Veículo %s (%s) finalizado - %.2fs%n", id, tipo, dwelling / 1000.0);
+        // Registra nas estatísticas
+        estatisticas.registrarVeiculo(veiculo.getTipo(), dwelling);
 
-        // Envia info individual e total para o dashboard
+        // Log detalhado com caminho completo e timestamp
+        System.out.printf("[Saída] ✅ Veículo %s (%s) CHEGOU À SAÍDA - %.2fs | Caminho: %s | Posição: %d/%d%n",
+                veiculo.getId(),
+                veiculo.getTipo(),
+                dwelling / 1000.0,
+                veiculo.getCaminho(),
+                veiculo.getIndiceCaminhoAtual(),
+                veiculo.getCaminho().size());
+
+        // Envia informação para o dashboard
+        String caminhoStr = String.join("->", veiculo.getCaminho());
         ComunicadorDashboard.getInstance().enviar(String.format(
-                "[Saída] id=%s tipo=%s percurso=E3->Cr3->S tempo=%.2fs",
-                id, tipo, dwelling / 1000.0
+                "[Saída] id=%s tipo=%s percurso=%s->%s tempo=%.2fs",
+                veiculo.getId(),
+                veiculo.getTipo(),
+                veiculo.getPontoEntrada(),
+                caminhoStr,
+                dwelling / 1000.0
         ));
-        ComunicadorDashboard.getInstance().enviar("[Saída_Total] " + estatisticas.getTotalVeiculos());
+
+        // Atualiza contador total no dashboard
+        int totalAtual = estatisticas.getTotalVeiculos();
+        ComunicadorDashboard.getInstance().enviar("[Saída_Total] " + totalAtual);
+
+        System.out.printf("[Saída] 📊 Total de veículos que saíram: %d%n", totalAtual);
     }
 
     public void finalizar() {

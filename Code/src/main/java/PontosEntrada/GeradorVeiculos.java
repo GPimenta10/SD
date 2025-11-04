@@ -2,11 +2,13 @@ package PontosEntrada;
 
 import Dashboard.ComunicadorDashboard;
 import Veiculo.Veiculo;
-import java.io.PrintWriter;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 /**
  * Processo principal que gere a criação, envio e registo de veículos.
+ *
+ * ALTERAÇÃO: Usa ObjectOutputStream para enviar veículos serializados.
  */
 public class GeradorVeiculos {
 
@@ -19,7 +21,7 @@ public class GeradorVeiculos {
     private final int numeroVeiculos;
     private volatile boolean executando = true;
 
-    // Flags de controlo (podem ser removidas depois)
+    // Flags de controlo
     private static final boolean ATIVAR_E1 = false;
     private static final boolean ATIVAR_E2 = false;
     private static final boolean ATIVAR_E3 = true;
@@ -48,15 +50,20 @@ public class GeradorVeiculos {
         ComunicadorDashboard dashboard = ComunicadorDashboard.getInstance();
 
         try (Socket socket = new Socket(hostDestino, portaDestino);
-             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
+             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream())) {
 
-            System.out.printf("[Gerador-%s] Conectado a %s:%d%n", pontoEntrada, hostDestino, portaDestino);
+            System.out.printf("[Gerador-%s] Conectado a %s:%d [MODO SERIALIZADO]%n",
+                    pontoEntrada, hostDestino, portaDestino);
 
             for (int i = 0; i < numeroVeiculos && executando; i++) {
                 Veiculo veiculo = fabrica.criarVeiculo();
 
-                distribuidor.enviar(writer, veiculo);
-                dashboard.enviar("[Entrada] " + pontoEntrada + " tipo=" + veiculo.getTipo());
+                // Envia objeto serializado
+                distribuidor.enviar(oos, veiculo);
+
+                // Envia ao dashboard com ID do veículo
+                dashboard.enviar(String.format("[Entrada] %s tipo=%s id=%s",
+                        pontoEntrada, veiculo.getTipo(), veiculo.getId()));
 
                 Thread.sleep(temporizador.proximoIntervalo());
             }
@@ -65,6 +72,7 @@ public class GeradorVeiculos {
 
         } catch (Exception e) {
             System.err.printf("[Gerador-%s] Erro: %s%n", pontoEntrada, e.getMessage());
+            e.printStackTrace();
         }
     }
 

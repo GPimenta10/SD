@@ -1,7 +1,4 @@
-import Cruzamentos.Cruzamento;
-import OutrasClasses.Saida;
 import PontosEntrada.GeradorVeiculos;
-import Veiculo.Veiculo;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -20,7 +17,7 @@ public class Main {
     private static final int PORTA_SAIDA = 9100;
 
     // Configurações de simulação
-    private static final int NUM_VEICULOS = 10;
+    private static final int NUM_VEICULOS = 11;
     private static final GeradorVeiculos.ModoGeracao MODO_GERACAO = GeradorVeiculos.ModoGeracao.FIXO;
     private static final long INTERVALO_FIXO_MS = 2000; // 2 segundos entre veículos
     private static final double TAXA_POISSON = 0.5;     // 0.5 veículos/segundo (alternativa)

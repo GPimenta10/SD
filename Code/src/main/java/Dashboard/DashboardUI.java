@@ -12,8 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Janela principal do dashboard gráfico.
- * Recebe mensagens de Entrada, Saída e Semáforos.
- * Atualiza os painéis em tempo real.
+ * CORREÇÃO: Agora remove veículos do mapa quando chegam à saída.
  */
 public class DashboardUI extends JFrame {
 
@@ -72,7 +71,7 @@ public class DashboardUI extends JFrame {
     }
 
     /**
-     * Processa cada conexão de cliente (Entrada, Saída, Cruzamento...).
+     * Processa cada conexão de cliente.
      */
     private void processar(Socket socket) {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
@@ -80,11 +79,13 @@ public class DashboardUI extends JFrame {
             while ((linha = in.readLine()) != null) {
                 processarMensagem(linha.trim());
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            // Ignora erros de desconexão
+        }
     }
 
     /**
-     * Processa mensagens recebidas e encaminha para os painéis correspondentes.
+     * Processa mensagens recebidas e encaminha para os painéis.
      */
     private void processarMensagem(String msg) {
         msg = msg.trim();
@@ -92,10 +93,14 @@ public class DashboardUI extends JFrame {
         if (msg.startsWith("[Entrada]")) {
             registrarEntrada(msg);
             painelMapa.adicionarVeiculo(msg);
+
         } else if (msg.startsWith("[Semaforo]")) {
             painelMapa.atualizarSemaforo(msg);
-        } else if (msg.startsWith("[Saída]")) {
-            registrarSaida(msg); // ✅ processa saídas aqui
+
+        } else if (msg.startsWith("[Saída]") && !msg.startsWith("[Saída_Total]")) {
+            registrarSaida(msg);
+            painelMapa.removerVeiculo(msg); // ✅ REMOVE veículo do mapa
+
         } else if (msg.startsWith("[Saída_Total]")) {
             atualizarTotalSaidas(msg);
         }
@@ -103,12 +108,10 @@ public class DashboardUI extends JFrame {
 
     /**
      * Regista uma nova entrada de veículo.
-     * Exemplo de mensagem: [Entrada] E3 tipo=CARRO
      */
     private void registrarEntrada(String msg) {
-        totalEntradas.incrementAndGet(); // soma +1 ao total
+        totalEntradas.incrementAndGet();
 
-        // Descobre qual entrada (E1, E2 ou E3)
         String[] partes = msg.split(" ");
         String entrada = partes.length > 1 ? partes[1].trim() : "Desconhecida";
 
@@ -120,6 +123,7 @@ public class DashboardUI extends JFrame {
 
     /**
      * Regista um veículo que saiu e atualiza contador e tabela.
+     * ✅ CORREÇÃO: Adiciona atraso antes de remover do mapa (para animação chegar ao nó S)
      */
     private void registrarSaida(String msg) {
         totalSaidas.incrementAndGet();
@@ -130,26 +134,43 @@ public class DashboardUI extends JFrame {
             String tipo = extrairValor(msg, "tipo=");
             String percurso = extrairValor(msg, "percurso=");
             String tempo = extrairValor(msg, "tempo=");
+
             SwingUtilities.invokeLater(() ->
                     modeloTabela.addRow(new Object[]{id, tipo, percurso, tempo})
             );
-        } catch (Exception ignored) {}
+
+            System.out.printf("[Dashboard] ✅ Registrado saída: %s (%s) - %ss | Total: %d%n",
+                    id, tipo, tempo, totalSaidas.get());
+
+            // ✅ Remove do mapa com atraso de 2 segundos (tempo para animação chegar ao nó S)
+            String finalId = id;
+            new Thread(() -> {
+                try {
+                    Thread.sleep(2000); // 2 segundos = tempo suficiente para animação
+                    painelMapa.removerVeiculo("[Saída] id=" + finalId);
+                } catch (InterruptedException ignored) {}
+            }).start();
+
+        } catch (Exception e) {
+            System.err.printf("[Dashboard] Erro ao processar saída: %s%n", e.getMessage());
+        }
     }
 
     /**
-     * Atualiza o total global de saídas (caso receba [Saída_Total]).
+     * Atualiza o total global de saídas.
      */
     private void atualizarTotalSaidas(String msg) {
         try {
             int total = Integer.parseInt(msg.replace("[Saída_Total]", "").trim());
             totalSaidas.set(total);
             painelResumo.atualizar(totalEntradas.get(), porEntrada, totalSaidas.get());
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException e) {
+            System.err.printf("[Dashboard] Erro ao parsear total de saídas: %s%n", msg);
+        }
     }
 
     /**
-     * Extrai um valor de uma mensagem baseada em chave.
-     * Exemplo: extrairValor("[Saída] id=123 tipo=MOTO", "tipo=") → "MOTO"
+     * Extrai valor de uma mensagem baseada em chave.
      */
     private String extrairValor(String msg, String chave) {
         try {
@@ -159,17 +180,14 @@ public class DashboardUI extends JFrame {
             int end = msg.indexOf(' ', start);
             if (end == -1) end = msg.length();
             String valor = msg.substring(start, end).trim();
-
-            // Remove eventuais símbolos extras ([ ] , :)
-            valor = valor.replaceAll("[\\[\\]]", "");
-            return valor;
+            return valor.replaceAll("[\\[\\],:]", "");
         } catch (Exception e) {
             return "";
         }
     }
 
     /**
-     * Método principal — permite iniciar o Dashboard isoladamente ou via Main.
+     * Método principal – permite iniciar o Dashboard isoladamente ou via Main.
      */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
