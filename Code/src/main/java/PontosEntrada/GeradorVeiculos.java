@@ -8,6 +8,7 @@ import com.google.gson.Gson;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -16,9 +17,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * Classe responsável por gerar veículos num ponto de entrada
  * e enviá-los diretamente ao primeiro cruzamento do seu caminho.
  *
- * A geração é feita com base em probabilidades definidas
- * (40% carro, 40% mota, 20% camião) e o envio é via TCP (JSON).
- * Também notifica o Dashboard de cada novo veículo criado.
+ * ATUALIZADO: Notifica Dashboard do movimento do veículo
  */
 public class GeradorVeiculos extends Thread {
 
@@ -30,7 +29,7 @@ public class GeradorVeiculos extends Thread {
     private final Gson gson = new Gson();
     private volatile boolean ativo = true;
 
-    private static long contadorIds = 0; // contador simples para gerar IDs únicos
+    private static long contadorIds = 0;
 
     public GeradorVeiculos(PontoEntrada pontoEntrada, String ipPrimeiroCruzamento,
                            int portaPrimeiroCruzamento, long intervaloGeracaoMs) {
@@ -50,8 +49,19 @@ public class GeradorVeiculos extends Thread {
         try {
             while (ativo) {
                 Veiculo veiculo = gerarVeiculo();
+
+                // Determina o primeiro cruzamento do caminho
+                String primeiroCruzamento = veiculo.getCaminho().isEmpty() ? "S" : veiculo.getCaminho().get(0);
+
+                // Notifica Dashboard do movimento
+                notificarMovimento(veiculo.getId(), veiculo.getTipo().name(),
+                        pontoEntrada.name(), primeiroCruzamento);
+
+                // Envia veículo ao cruzamento
                 enviarVeiculo(veiculo);
-                notificarDashboard(); // 👈 NOVO: notifica o dashboard
+
+                // Notifica geração
+                notificarDashboard();
 
                 System.out.printf("[%s] Gerado e enviado veículo %s (%s) - Caminho: %s%n",
                         pontoEntrada.name(),
@@ -67,9 +77,6 @@ public class GeradorVeiculos extends Thread {
         }
     }
 
-    /**
-     * Gera um novo veículo com tipo aleatório e caminho calculado.
-     */
     private Veiculo gerarVeiculo() {
         double p = ThreadLocalRandom.current().nextDouble();
         TipoVeiculo tipo;
@@ -84,9 +91,6 @@ public class GeradorVeiculos extends Thread {
         return new Veiculo(id, tipo, pontoEntrada, caminho);
     }
 
-    /**
-     * Envia o veículo para o primeiro cruzamento do seu caminho.
-     */
     private void enviarVeiculo(Veiculo veiculo) {
         try (Socket socket = new Socket(ipPrimeiroCruzamento, portaPrimeiroCruzamento);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
@@ -94,7 +98,7 @@ public class GeradorVeiculos extends Thread {
             Mensagem mensagem = new Mensagem(
                     "VEICULO",
                     pontoEntrada.name(),
-                    veiculo.getCaminho().get(0),
+                    veiculo.getCaminho().isEmpty() ? "S" : veiculo.getCaminho().get(0),
                     Map.of("veiculo", veiculo)
             );
 
@@ -108,8 +112,7 @@ public class GeradorVeiculos extends Thread {
     }
 
     /**
-     * NOVO — Envia uma notificação simples para o Dashboard (porta 6000)
-     * indicando que um veículo foi gerado neste ponto de entrada.
+     * Notifica o Dashboard que um veículo foi gerado
      */
     private void notificarDashboard() {
         try (Socket socket = new Socket("localhost", 6000);
@@ -131,8 +134,33 @@ public class GeradorVeiculos extends Thread {
     }
 
     /**
-     * Encerra a thread de forma segura.
+     * NOVO: Notifica o Dashboard do movimento do veículo no mapa
      */
+    private void notificarMovimento(String idVeiculo, String tipo, String origem, String destino) {
+        try (Socket socket = new Socket("localhost", 6000);
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+
+            Map<String, Object> conteudo = new HashMap<>();
+            conteudo.put("id", idVeiculo);
+            conteudo.put("tipo", tipo);
+            conteudo.put("origem", origem);
+            conteudo.put("destino", destino);
+
+            Mensagem msg = new Mensagem(
+                    "VEICULO_MOVIMENTO",
+                    origem,
+                    "Dashboard",
+                    conteudo
+            );
+
+            out.println(gson.toJson(msg));
+
+        } catch (IOException e) {
+            System.err.printf("[%s] Falha ao notificar movimento: %s%n",
+                    pontoEntrada.name(), e.getMessage());
+        }
+    }
+
     public void parar() {
         ativo = false;
         interrupt();

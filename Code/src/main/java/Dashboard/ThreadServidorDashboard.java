@@ -13,6 +13,8 @@ import java.net.Socket;
 /**
  * Servidor que recebe mensagens TCP dos cruzamentos e da saída.
  * Atualiza a interface gráfica em tempo real.
+ *
+ * ATUALIZADO: Processa mensagens de movimento de veículos para animação no mapa
  */
 public class ThreadServidorDashboard extends Thread {
 
@@ -59,13 +61,19 @@ public class ThreadServidorDashboard extends Thread {
             switch (tipo) {
                 case "VEICULO_SAIU" -> processarVeiculoSaida(obj);
                 case "VEICULO_GERADO" -> processarVeiculoGerado(obj);
+                case "VEICULO_MOVIMENTO" -> processarVeiculoMovimento(obj); // NOVO
+                case "ESTATISTICA" -> processarEstatisticaCruzamento(obj); // OPCIONAL
                 default -> System.out.println("[DashboardServidor] Tipo desconhecido: " + tipo);
             }
         } catch (Exception e) {
             System.err.println("[DashboardServidor] Erro JSON: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
+    /**
+     * Processa mensagem de veículo que saiu do sistema
+     */
     private void processarVeiculoSaida(JsonObject obj) {
         JsonObject conteudo = obj.getAsJsonObject("conteudo");
 
@@ -75,14 +83,80 @@ public class ThreadServidorDashboard extends Thread {
         JsonArray caminho = conteudo.getAsJsonArray("caminho");
         double tempoTotal = conteudo.get("tempoTotal").getAsDouble();
 
-        dashboardFrame.getPainelVeiculos().adicionarVeiculoSaiu(id, tipo, entrada, caminho, tempoTotal);
-        dashboardFrame.getPainelEstatisticas().incrementarSaidas();
+        SwingUtilities.invokeLater(() -> {
+            dashboardFrame.getPainelVeiculos().adicionarVeiculoSaiu(id, tipo, entrada, caminho, tempoTotal);
+            dashboardFrame.getPainelEstatisticas().incrementarSaidas();
+        });
+
+        System.out.printf("[DashboardServidor] Veículo saiu: %s (%s) - %.2fs%n", id, tipo, tempoTotal);
     }
 
-
+    /**
+     * Processa mensagem de veículo gerado
+     */
     private void processarVeiculoGerado(JsonObject obj) {
         String entrada = obj.get("origem").getAsString();
-        SwingUtilities.invokeLater(() -> dashboardFrame.getPainelEstatisticas().incrementarGerado(entrada));
+        SwingUtilities.invokeLater(() ->
+                dashboardFrame.getPainelEstatisticas().incrementarGerado(entrada)
+        );
+        System.out.printf("[DashboardServidor] Veículo gerado em %s%n", entrada);
+    }
+
+    /**
+     * NOVO: Processa mensagem de movimento de veículo (para animação no mapa)
+     */
+    private void processarVeiculoMovimento(JsonObject obj) {
+        JsonObject conteudo = obj.getAsJsonObject("conteudo");
+
+        String id = conteudo.get("id").getAsString();
+        String tipo = conteudo.get("tipo").getAsString();
+        String origem = conteudo.get("origem").getAsString();
+        String destino = conteudo.get("destino").getAsString();
+
+        SwingUtilities.invokeLater(() ->
+                dashboardFrame.getPainelMapa().adicionarVeiculo(id, tipo, origem, destino)
+        );
+
+        System.out.printf("[DashboardServidor] Movimento: %s (%s) de %s → %s%n",
+                id, tipo, origem, destino);
+    }
+
+    /**
+     * Processa estatísticas de cruzamentos (estado dos semáforos)
+     */
+    private void processarEstatisticaCruzamento(JsonObject obj) {
+        String cruzamento = obj.get("origem").getAsString();
+        JsonObject conteudo = obj.getAsJsonObject("conteudo");
+
+        if (conteudo != null && conteudo.has("estado")) {
+            JsonObject estado = conteudo.getAsJsonObject("estado");
+
+            if (estado.has("semaforos")) {
+                JsonArray semaforos = estado.getAsJsonArray("semaforos");
+
+                for (int i = 0; i < semaforos.size(); i++) {
+                    JsonObject semaforo = semaforos.get(i).getAsJsonObject();
+
+                    String nome = semaforo.get("nome").getAsString();
+                    String estadoSem = semaforo.get("estado").getAsString();
+                    boolean verde = "VERDE".equals(estadoSem);
+
+                    // Extrai origem e destino do nome do semáforo
+                    // Formato esperado: "Semaforo_E3->Cr3->S"
+                    String[] partes = nome.split("->");
+                    if (partes.length >= 3) {
+                        String origem = partes[0].replace("Semaforo_", "");
+                        String destino = partes[2];
+
+                        SwingUtilities.invokeLater(() ->
+                                dashboardFrame.getPainelMapa().atualizarSemaforo(cruzamento, origem, destino, verde)
+                        );
+                    }
+                }
+            }
+        }
+
+        System.out.printf("[DashboardServidor] Estatísticas de %s processadas%n", cruzamento);
     }
 
     public void parar() {
