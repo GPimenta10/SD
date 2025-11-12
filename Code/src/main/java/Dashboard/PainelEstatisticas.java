@@ -8,6 +8,8 @@ import java.awt.*;
  * - Total de veículos gerados
  * - Total por entrada (E1, E2, E3)
  * - Total de veículos que saíram
+ *
+ * 🔧 MELHORIAS: Visual mais claro com cores e fonte maior
  */
 public class PainelEstatisticas extends JPanel {
 
@@ -21,14 +23,22 @@ public class PainelEstatisticas extends JPanel {
     private int e1 = 0, e2 = 0, e3 = 0, saida = 0;
 
     public PainelEstatisticas() {
-        setLayout(new GridLayout(1, 5, 10, 10));
-        setBorder(BorderFactory.createTitledBorder("Estatísticas Globais"));
+        setLayout(new GridLayout(1, 5, 15, 10));
+        setBorder(BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(Color.DARK_GRAY, 2),
+                "📊 Estatísticas Globais do Sistema",
+                0,
+                0,
+                new Font("Arial", Font.BOLD, 14)
+        ));
+        setBackground(new Color(240, 240, 240));
 
-        totalGeradoLabel = new JLabel("Total Gerado: 0");
-        e1Label = new JLabel("E1: 0");
-        e2Label = new JLabel("E2: 0");
-        e3Label = new JLabel("E3: 0");
-        totalSaidaLabel = new JLabel("Total Saída: 0");
+        // 🔧 NOVO: Labels com melhor formatação
+        totalGeradoLabel = criarLabel("Total Gerado: 0", new Color(33, 150, 243));
+        e1Label = criarLabel("E1: 0", new Color(76, 175, 80));
+        e2Label = criarLabel("E2: 0", new Color(255, 152, 0));
+        e3Label = criarLabel("E3: 0", new Color(156, 39, 176));
+        totalSaidaLabel = criarLabel("Total Saída: 0", new Color(244, 67, 54));
 
         add(totalGeradoLabel);
         add(e1Label);
@@ -37,7 +47,25 @@ public class PainelEstatisticas extends JPanel {
         add(totalSaidaLabel);
     }
 
-    // === Atualizações ===
+    /**
+     * Cria um label com formatação personalizada
+     */
+    private JLabel criarLabel(String texto, Color cor) {
+        JLabel label = new JLabel(texto, SwingConstants.CENTER);
+        label.setFont(new Font("Arial", Font.BOLD, 16));
+        label.setForeground(cor);
+        label.setOpaque(true);
+        label.setBackground(Color.WHITE);
+        label.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(cor, 2),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        return label;
+    }
+
+    /**
+     * Incrementa contador de veículos gerados por entrada
+     */
     public synchronized void incrementarGerado(String entrada) {
         totalGerado++;
         switch (entrada) {
@@ -48,16 +76,26 @@ public class PainelEstatisticas extends JPanel {
         atualizar();
     }
 
+    /**
+     * Incrementa contador de veículos que saíram
+     * 🔧 CORREÇÃO: Agora atualiza corretamente
+     */
     public synchronized void incrementarSaidas() {
         saida++;
         atualizar();
+        System.out.printf("[PainelEstatisticas] Saídas atualizadas: %d%n", saida);
     }
 
+    /**
+     * Atualiza todos os labels no EDT (Event Dispatch Thread)
+     */
     private void atualizar() {
-        totalGeradoLabel.setText("Total Gerado: " + totalGerado);
-        e1Label.setText("E1: " + e1);
-        e2Label.setText("E2: " + e2);
-        e3Label.setText("E3: " + e3);
-        totalSaidaLabel.setText("Total Saída: " + saida);
+        SwingUtilities.invokeLater(() -> {
+            totalGeradoLabel.setText(String.format("Total Gerado: %d", totalGerado));
+            e1Label.setText(String.format("E1: %d", e1));
+            e2Label.setText(String.format("E2: %d", e2));
+            e3Label.setText(String.format("E3: %d", e3));
+            totalSaidaLabel.setText(String.format("Total Saída: %d", saida));
+        });
     }
 }

@@ -26,7 +26,7 @@ public class Saida {
 
     /**
      * Construtor da Saída.
-     * @param portaServidor Porta TCP de receção de veículos
+     * @param portaServidor Porta TCP de recepção de veículos
      * @param ipDashboard IP do Dashboard
      * @param portaDashboard Porta TCP do Dashboard
      */
@@ -50,18 +50,25 @@ public class Saida {
     /**
      * Regista um veículo que saiu do sistema.
      * Atualiza o tempo de saída e armazena para estatísticas.
+     *
+     * 🔧 CORREÇÃO: Agora notifica imediatamente o Dashboard
      */
     public void registarVeiculo(Veiculo veiculo) {
         long tempoSaida = System.currentTimeMillis();
         veiculo.setTempoSaida(tempoSaida);
 
         long tempoTotal = veiculo.getDwellingTime();
+        double tempoTotalSegundos = tempoTotal / 1000.0;
 
         veiculosSaidos.add(veiculo);
+
         System.out.printf("[Saida] Veículo %s (%s) saiu do sistema. Tempo total: %.2f s%n",
                 veiculo.getId(),
                 veiculo.getTipo(),
-                tempoTotal / 1000.0);
+                tempoTotalSegundos);
+
+        // 🔧 NOVO: Notifica o dashboard imediatamente
+        saidaComunicDash.enviarVeiculoSaiu(veiculo, tempoTotalSegundos);
     }
 
     /** Lista imutável dos veículos já processados. */

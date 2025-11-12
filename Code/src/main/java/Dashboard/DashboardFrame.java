@@ -6,9 +6,11 @@ import java.awt.*;
 /**
  * Janela principal do Dashboard.
  * Contém:
- *  - Estatísticas globais (topo)
- *  - Mapa do sistema (centro)
- *  - Lista de veículos que saíram (base)
+ *  - Estatísticas globais (topo) - 10%
+ *  - Mapa do sistema (centro) - 70%
+ *  - Lista de veículos que saíram (base) - 20%
+ *
+ * 🔧 CORREÇÃO: Proporções ajustadas para dar mais destaque ao mapa
  */
 public class DashboardFrame extends JFrame {
 
@@ -21,13 +23,18 @@ public class DashboardFrame extends JFrame {
 
         // === Configuração da janela ===
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(900, 700);
+        setSize(1000, 800);
         setLayout(new BorderLayout(10, 10));
 
         // === Criação dos painéis ===
         painelEstatisticas = new PainelEstatisticas();
         painelMapa = new PainelMapa();
         painelVeiculos = new PainelVeiculos();
+
+        // 🔧 NOVO: Configurar tamanhos preferenciais
+        painelEstatisticas.setPreferredSize(new Dimension(1000, 80));
+        painelMapa.setPreferredSize(new Dimension(1000, 500));
+        painelVeiculos.setPreferredSize(new Dimension(1000, 200));
 
         // === Adição à janela ===
         add(painelEstatisticas, BorderLayout.NORTH);

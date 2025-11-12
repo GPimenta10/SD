@@ -26,9 +26,9 @@ public class PainelMapa extends JPanel {
         g.drawString("E2", 300, 50);
         g.drawString("E3", 500, 50);
 
-        g.drawLine(110, 60, 110, 150);
-        g.drawLine(310, 60, 310, 150);
-        g.drawLine(510, 60, 510, 150);
+        g.drawLine(115, 60, 115, 150);
+        g.drawLine(315, 60, 315, 150);
+        g.drawLine(515, 60, 515, 150);
 
         // Cruzamentos superiores
         g.drawOval(100, 150, 30, 30); g.drawString("Cr1", 90, 200);
@@ -41,12 +41,14 @@ public class PainelMapa extends JPanel {
         // Cruzamentos inferiores
         g.drawOval(100, 300, 30, 30); g.drawString("Cr4", 90, 350);
         g.drawOval(300, 300, 30, 30); g.drawString("Cr5", 290, 350);
+        g.drawOval(500, 300, 30, 30); g.drawString("S", 490, 350);
 
         g.drawLine(115, 180, 115, 300);
         g.drawLine(315, 180, 315, 300);
+        g.drawLine(515, 180, 515, 300);
 
-        // Saída
-        g.drawString("S", 520, 350);
-        g.drawLine(515, 180, 515, 350);
+        g.drawLine(130, 315, 300, 315);
+        g.drawLine(330, 315, 500, 315);
+
     }
 }
