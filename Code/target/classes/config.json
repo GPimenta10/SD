@@ -1,0 +1,13 @@
+{
+  "cruzamentos": [
+    {
+      "nome": "Cr3",
+      "portaServidor": 5003,
+      "ipDashboard": "localhost",
+      "portaDashboard": 6000,
+      "ligacoes": [
+        { "origem": "E3", "destino": "S", "ip": "localhost", "porta": 5999 }
+      ]
+    }
+  ]
+}
