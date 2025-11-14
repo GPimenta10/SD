@@ -1,10 +1,5 @@
 package PontosEntrada;
 
-import Rede.Mensagem;
-import Veiculo.TipoVeiculo;
-import Veiculo.Veiculo;
-import com.google.gson.Gson;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -13,6 +8,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.google.gson.Gson;
+
+import Rede.Mensagem;
+import Veiculo.TipoVeiculo;
+import Veiculo.Veiculo;
 
 /**
  * Gerador de veículos com limite máximo.
