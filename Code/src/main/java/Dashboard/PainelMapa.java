@@ -1,13 +1,23 @@
 package Dashboard;
 
-import javax.swing.*;
-import javax.swing.Timer;
-import java.awt.*;
-import java.awt.geom.*;
-import java.util.*;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.geom.Point2D;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import javax.swing.BorderFactory;
+import javax.swing.JPanel;
+import javax.swing.Timer;
 
 /**
  * Painel central melhorado com:
@@ -456,17 +466,23 @@ public class PainelMapa extends JPanel {
      * @param verde
      */
     public void atualizarSemaforoPorId(String cruzamento, int id, boolean verde) {
-        String chave = mapaIds.get(id);
+        // O mapaIds contém o mapeamento de ID numérico para a chave visual.
+        // Ex: 0 -> "Cr3_E3-Cr3"
+        String chaveVisual = mapaIds.get(id);
 
-        if (chave == null) {
+        if (chaveVisual == null) {
             System.err.println("[PainelMapa] Falhou: semáforo ID " + id + " não registado!");
             return;
         }
 
-        estadosSemaforos.put(chave, verde);
+        // CORREÇÃO: Usar a chave visual para atualizar o estado e redesenhar.
+        // O método 'atualizarSemaforo' já faz isso.
+        estadosSemaforos.put(chaveVisual, verde);
+
+        // FORÇA A ATUALIZAÇÃO VISUAL
         repaint();
 
-        System.out.println("[PainelMapa] Semáforo atualizado: " + chave + " = " + (verde ? "VERDE" : "VERMELHO"));
+        System.out.println("[PainelMapa] Semáforo atualizado: " + chaveVisual + " = " + (verde ? "VERDE" : "VERMELHO"));
     }
 
 

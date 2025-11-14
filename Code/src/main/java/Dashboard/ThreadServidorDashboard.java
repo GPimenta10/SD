@@ -1,14 +1,15 @@
 package Dashboard;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
-import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+
+import javax.swing.SwingUtilities;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 /**
  * Servidor que recebe mensagens TCP dos cruzamentos e da saída.
@@ -133,14 +134,21 @@ public class ThreadServidorDashboard extends Thread {
                 for (int i = 0; i < semaforos.size(); i++) {
                     JsonObject semaforo = semaforos.get(i).getAsJsonObject();
 
-                    int id = semaforo.get("id").getAsInt();
+                    int id = semaforo.get("id").getAsInt(); // ou getAsDouble().intValue() se houver problemas
                     String estadoSem = semaforo.get("estado").getAsString();
                     boolean verde = "VERDE".equals(estadoSem);
 
-                    // Atualizar o mapa pelo ID
-                    SwingUtilities.invokeLater(() ->
-                            dashboardFrame.getPainelMapa().atualizarSemaforoPorId(cruzamento, id, verde)
-                    );
+                    // NOVO: Registar o ID se tivermos a informação completa
+                    if (semaforo.has("origem") && semaforo.has("destino")) {
+                        String origemSemaforo = semaforo.get("origem").getAsString();
+                        String destinoSemaforo = semaforo.get("destino").getAsString();
+                        SwingUtilities.invokeLater(() ->
+                                dashboardFrame.getPainelMapa().registarSemaforoId(cruzamento, id, origemSemaforo, destinoSemaforo)
+                        );
+                    }
+
+                    // Agora, atualiza o mapa pelo ID (que já deve estar registado)
+                    SwingUtilities.invokeLater(() -> dashboardFrame.getPainelMapa().atualizarSemaforoPorId(cruzamento, id, verde));
                 }
             }
         }
