@@ -1,70 +1,89 @@
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * Orquestrador da Simulação de Tráfego Urbano.
- * Inicia Dashboard, Saída, Cruzamentos e Geradores como processos independentes.
- *
- * Neste teste: E3 -> Cr3 -> Saída
- */
 public class Main {
 
+    private static final String CLASSPATH =
+            "target/classes;C:\\Users\\Gabriel\\.m2\\repository\\com\\google\\code\\gson\\gson\\2.10.1\\gson-2.10.1.jar";
+
     public static void main(String[] args) {
-        System.out.println("=".repeat(60));
-        System.out.println("TESTE: E3 -> Cr3 -> S (Processos Independentes)");
-        System.out.println("=".repeat(60));
+
+        List<Process> processos = new ArrayList<>();
 
         try {
-            // === 1. Iniciar o DASHBOARD ===
-            System.out.println("[SISTEMA] A iniciar processo Dashboard...");
+            System.out.println("\n=== INICIANDO TESTE COMPLETO: Dashboard + E3 → Cr3 → S ===\n");
+
+            // ======================================
+            // 1. DASHBOARD
+            // ======================================
+            System.out.println("• Iniciando Dashboard...");
             Process dashboardProc = new ProcessBuilder(
-                    "java", "-cp", "target/classes;C:\\Users\\Gabriel\\.m2\\repository\\com\\google\\code\\gson\\gson\\2.10.1\\gson-2.10.1.jar",
+                    "java", "-cp", CLASSPATH,
                     "Dashboard.DashboardMain"
             ).inheritIO().start();
+            processos.add(dashboardProc);
+            Thread.sleep(2500); // tempo para abrir a janela do Swing
 
-            Thread.sleep(2000); // pequeno delay para garantir que o Dashboard sobe primeiro
-
-            // === 2. Iniciar o processo de SAÍDA ===
-            System.out.println("[SISTEMA] A iniciar processo Saída...");
+            // ======================================
+            // 2. SAÍDA S
+            // ======================================
+            System.out.println("• Iniciando Saída S...");
             Process saidaProc = new ProcessBuilder(
-                    "java", "-cp", "target/classes;C:\\Users\\Gabriel\\.m2\\repository\\com\\google\\code\\gson\\gson\\2.10.1\\gson-2.10.1.jar",
+                    "java", "-cp", CLASSPATH,
                     "Saida.SaidaMain"
             ).inheritIO().start();
-
+            processos.add(saidaProc);
             Thread.sleep(1000);
 
-            // === 3. Iniciar o processo de CRUZAMENTO ===
-            System.out.println("[SISTEMA] A iniciar processo Cruzamento...");
-            Process cruzamentoProc = new ProcessBuilder(
-                    "java", "-cp", "target/classes;C:\\Users\\Gabriel\\.m2\\repository\\com\\google\\code\\gson\\gson\\2.10.1\\gson-2.10.1.jar",
-                    "Cruzamentos.CruzamentoMain"
+            // ======================================
+            // 3. CRUZAMENTO CR3
+            // ======================================
+            System.out.println("• Iniciando Cruzamento Cr3...");
+            Process cr3Proc = new ProcessBuilder(
+                    "java", "-cp", CLASSPATH,
+                    "Cruzamentos.CruzamentoMain",
+                    "Cr3"
             ).inheritIO().start();
+            processos.add(cr3Proc);
+            Thread.sleep(1500);
 
-            Thread.sleep(1000);
-
-            // === 4. Iniciar o processo de GERADOR DE VEÍCULOS ===
-            System.out.println("[SISTEMA] A iniciar processo Gerador de Veículos...");
-            Process geradorProc = new ProcessBuilder(
-                    "java", "-cp", "target/classes;C:\\Users\\Gabriel\\.m2\\repository\\com\\google\\code\\gson\\gson\\2.10.1\\gson-2.10.1.jar",
+            // ======================================
+            // 4. GERADOR DE E3
+            // ======================================
+            System.out.println("• Iniciando Gerador E3...");
+            Process geradorE3Proc = new ProcessBuilder(
+                    "java", "-cp", CLASSPATH,
                     "PontosEntrada.ProcessMainE3"
             ).inheritIO().start();
+            processos.add(geradorE3Proc);
 
-            System.out.println("\n[SISTEMA] Todos os processos iniciados com sucesso!");
-            System.out.println("[SISTEMA] Simulação em execução...\n");
+            System.out.println("\n=== SISTEMA EM EXECUÇÃO ===");
+            System.out.println("Dashboard ativo, veículos a circular...");
+            System.out.println("Pressiona CTRL+C para sair mais cedo.\n");
 
-            // Mantém o orquestrador ativo enquanto os outros correm
-            Thread.sleep(30000);
+            Thread.sleep(30_000); // 30 segundos de teste
 
-            // === Encerrar tudo ===
-            System.out.println("\n[SISTEMA] Parando todos os processos...");
-            geradorProc.destroy();
-            cruzamentoProc.destroy();
-            saidaProc.destroy();
-            dashboardProc.destroy();
-
-            System.out.println("[SISTEMA] Simulação encerrada.");
-
-        } catch (IOException | InterruptedException e) {
+        } catch (Exception e) {
+            System.err.println("\nERRO: " + e.getMessage());
             e.printStackTrace();
+        } finally {
+            encerrarProcessos(processos);
         }
+    }
+
+    private static void encerrarProcessos(List<Process> processos) {
+        System.out.println("\nEncerrando processos...");
+
+        for (Process p : processos) {
+            if (p.isAlive()) {
+                p.destroy();
+                try {
+                    p.waitFor();
+                } catch (InterruptedException ignored) {}
+            }
+        }
+
+        System.out.println("✓ Todos os processos encerrados.\n");
     }
 }

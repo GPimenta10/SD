@@ -96,9 +96,7 @@ public class ThreadServidorDashboard extends Thread {
      */
     private void processarVeiculoGerado(JsonObject obj) {
         String entrada = obj.get("origem").getAsString();
-        SwingUtilities.invokeLater(() ->
-                dashboardFrame.getPainelEstatisticas().incrementarGerado(entrada)
-        );
+        SwingUtilities.invokeLater(() -> dashboardFrame.getPainelEstatisticas().incrementarGerado(entrada));
         System.out.printf("[DashboardServidor] Veículo gerado em %s%n", entrada);
     }
 
@@ -113,12 +111,10 @@ public class ThreadServidorDashboard extends Thread {
         String origem = conteudo.get("origem").getAsString();
         String destino = conteudo.get("destino").getAsString();
 
-        SwingUtilities.invokeLater(() ->
-                dashboardFrame.getPainelMapa().adicionarVeiculo(id, tipo, origem, destino)
+        SwingUtilities.invokeLater(() -> dashboardFrame.getPainelMapa().adicionarVeiculo(id, tipo, origem, destino)
         );
 
-        System.out.printf("[DashboardServidor] Movimento: %s (%s) de %s → %s%n",
-                id, tipo, origem, destino);
+        System.out.printf("[DashboardServidor] Movimento: %s (%s) de %s → %s%n", id, tipo, origem, destino);
     }
 
     /**
@@ -137,21 +133,14 @@ public class ThreadServidorDashboard extends Thread {
                 for (int i = 0; i < semaforos.size(); i++) {
                     JsonObject semaforo = semaforos.get(i).getAsJsonObject();
 
-                    String nome = semaforo.get("nome").getAsString();
+                    int id = semaforo.get("id").getAsInt();
                     String estadoSem = semaforo.get("estado").getAsString();
                     boolean verde = "VERDE".equals(estadoSem);
 
-                    // Extrai origem e destino do nome do semáforo
-                    // Formato esperado: "Semaforo_E3->Cr3->S"
-                    String[] partes = nome.split("->");
-                    if (partes.length >= 3) {
-                        String origem = partes[0].replace("Semaforo_", "");
-                        String destino = partes[2];
-
-                        SwingUtilities.invokeLater(() ->
-                                dashboardFrame.getPainelMapa().atualizarSemaforo(cruzamento, origem, destino, verde)
-                        );
-                    }
+                    // Atualizar o mapa pelo ID
+                    SwingUtilities.invokeLater(() ->
+                            dashboardFrame.getPainelMapa().atualizarSemaforoPorId(cruzamento, id, verde)
+                    );
                 }
             }
         }

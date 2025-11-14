@@ -17,6 +17,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class PainelMapa extends JPanel {
 
+    // chave é tipo "Cr3_E3-Cr3"
+    private final Map<Integer, String> mapaIds = new HashMap<>();
+
     // === Veículos em trânsito ===
     private final List<VeiculoNoMapa> veiculosEmTransito = new CopyOnWriteArrayList<>();
 
@@ -443,5 +446,44 @@ public class PainelMapa extends JPanel {
         if (animationTimer != null) {
             animationTimer.stop();
         }
+    }
+
+    /**
+     *
+     *
+     * @param cruzamento
+     * @param id
+     * @param verde
+     */
+    public void atualizarSemaforoPorId(String cruzamento, int id, boolean verde) {
+        String chave = mapaIds.get(id);
+
+        if (chave == null) {
+            System.err.println("[PainelMapa] Falhou: semáforo ID " + id + " não registado!");
+            return;
+        }
+
+        estadosSemaforos.put(chave, verde);
+        repaint();
+
+        System.out.println("[PainelMapa] Semáforo atualizado: " + chave + " = " + (verde ? "VERDE" : "VERMELHO"));
+    }
+
+
+    /**
+     * Regista o ID de um semáforo com a sua chave visual no mapa.
+     * Chamado uma única vez quando o dashboard recebe estatísticas iniciais.
+     *
+     * @param cruzamento
+     * @param id
+     * @param origem
+     * @param destino
+     */
+    public void registarSemaforoId(String cruzamento, int id, String origem, String destino) {
+        String chave = cruzamento + "_" + origem + "-" + destino;
+        mapaIds.put(id, chave);
+        // garante que o estado existe
+        estadosSemaforos.putIfAbsent(chave, false);
+        System.out.println("[PainelMapa] Registado ID=" + id + " -> " + chave);
     }
 }

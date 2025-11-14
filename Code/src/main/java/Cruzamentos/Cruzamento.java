@@ -1,208 +1,243 @@
 package Cruzamentos;
 
-import com.google.gson.Gson;
 import Rede.Mensagem;
 import Veiculo.Veiculo;
+import com.google.gson.Gson;
 
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Classe principal que representa um cruzamento do sistema.
- * ATUALIZADO: Notifica Dashboard dos movimentos de veículos
+ * Classe Cruzamento responsável por:
+ *  - Criar e gerir filas de veículos
+ *  - Criar semáforos associados a cada fila
+ *  - Enviar veículos para outros cruzamentos via TCP
+ *  - Receber veículos de outros cruzamentos
+ *  - Comunicar periodicamente com o Dashboard (opcional)
+ *
+ *  NOTA IMPORTANTE:
+ *  Os semáforos são simples: apenas retiram veículos da fila.
+ *  Quem envia os veículos via socket é o Cruzamento.
  */
 public class Cruzamento {
 
     private final String nomeCruzamento;
+
+    // Comunicação entre cruzamentos
     private final int portaServidor;
+    private final Map<String, ThreadCliente> mapaDestinoParaCliente = new HashMap<>();
+    private ThreadServidor threadServidor;
+
+    // Dashboard (opcional)
     private final String ipDashboard;
     private final int portaDashboard;
+    private ThreadDashboardCliente threadDashboardCliente;
 
-    private final List<FilaVeiculos> listaFilas = new ArrayList<>();
-    private final List<Semaforo> listaSemaforos = new ArrayList<>();
-    private final Map<String, ThreadCliente> mapaClientes = new HashMap<>();
-    private final ThreadServidor threadServidor;
-    private final ThreadDashboardCliente threadDashboardCliente;
-
+    // Fila → Destino e Origem → Fila
     private final Map<String, FilaVeiculos> mapaOrigemParaFila = new HashMap<>();
     private final Map<FilaVeiculos, String> mapaFilaParaDestino = new HashMap<>();
 
-    private final Object lock = new Object();
-    private final AtomicInteger semaforoAtivo = new AtomicInteger(0);
+    // Semáforos
+    private final List<Semaforo> listaSemaforos = new ArrayList<>();
+    private MonitorSemaforos monitorSemaforos;
 
     private final Gson gson = new Gson();
-    private volatile boolean ativo = true;
 
     public Cruzamento(String nomeCruzamento, int portaServidor, String ipDashboard, int portaDashboard) {
         this.nomeCruzamento = nomeCruzamento;
         this.portaServidor = portaServidor;
+
         this.ipDashboard = ipDashboard;
         this.portaDashboard = portaDashboard;
-
-        this.threadServidor = new ThreadServidor(portaServidor, this);
-        this.threadDashboardCliente = new ThreadDashboardCliente(ipDashboard, portaDashboard, this);
     }
 
-    public void adicionarLigacao(String nomeOrigem, String nomeDestino, String ipDestino, int portaDestino) {
-        String nomeFila = "Fila_" + nomeOrigem + "->" + nomeCruzamento + "->" + nomeDestino;
-        FilaVeiculos filaVeiculos = new FilaVeiculos();
-        listaFilas.add(filaVeiculos);
-
-        mapaOrigemParaFila.put(nomeOrigem, filaVeiculos);
-        mapaFilaParaDestino.put(filaVeiculos, nomeDestino);
-
-        int idSemaforo = listaSemaforos.size();
-        String nomeSemaforo = "Semaforo_" + nomeOrigem + "->" + nomeCruzamento + "->" + nomeDestino;
-        Semaforo semaforo = new Semaforo(nomeSemaforo, filaVeiculos, 2000, lock, idSemaforo,
-                listaSemaforos.size() + 1, semaforoAtivo, this);
-        listaSemaforos.add(semaforo);
-
-        ThreadCliente threadCliente = new ThreadCliente(nomeCruzamento, nomeDestino, ipDestino, portaDestino);
-        mapaClientes.put(nomeDestino, threadCliente);
-
-        System.out.printf("[Cruzamento %s] Ligação adicionada: %s -> %s -> %s (%s:%d)%n",
-                nomeCruzamento, nomeOrigem, nomeCruzamento, nomeDestino, ipDestino, portaDestino);
+    public String getNomeCruzamento() {
+        return nomeCruzamento;
     }
 
+    /**
+     * Define uma ligação ao cruzamento seguinte.
+     *
+     * @param origem        Nome da entrada deste cruzamento
+     * @param destino       Nome do cruzamento seguinte
+     * @param ipDestino     Endereço IP do cruzamento seguinte
+     * @param portaDestino  Porta TCP do cruzamento seguinte
+     */
+    public void adicionarLigacao(String origem, String destino, String ipDestino, int portaDestino) {
+
+        System.out.printf("[%s] Configurar ligação: %s → %s%n",
+                nomeCruzamento, origem, destino);
+
+        // Cria fila para esta origem
+        FilaVeiculos fila = new FilaVeiculos();
+        mapaOrigemParaFila.put(origem, fila);
+        mapaFilaParaDestino.put(fila, destino);
+
+        // Apenas 1 cliente TCP por destino
+        if (!mapaDestinoParaCliente.containsKey(destino)) {
+            ThreadCliente cliente = new ThreadCliente(nomeCruzamento, destino, ipDestino, portaDestino);
+            mapaDestinoParaCliente.put(destino, cliente);
+        }
+    }
+
+    /**
+     *
+     *
+     */
     public void iniciar() {
-        System.out.println("=== Cruzamento " + nomeCruzamento + " iniciado ===");
-        System.out.printf("[Cruzamento %s] Total de filas/semáforos: %d%n",
-                nomeCruzamento, listaFilas.size());
 
-        threadServidor.start();
-        threadDashboardCliente.start();
+        System.out.println("=".repeat(60));
+        System.out.printf(">>> INICIAR CRUZAMENTO %s%n", nomeCruzamento);
+        System.out.println("=".repeat(60));
 
-        for (ThreadCliente threadCliente : mapaClientes.values()) {
-            threadCliente.start();
+        // Criar monitor para os semáforos
+        monitorSemaforos = new MonitorSemaforos(mapaOrigemParaFila.size());
+
+        // Criar Semáforos
+        int idSemaforo = 0;
+        for (Map.Entry<String, FilaVeiculos> entry : mapaOrigemParaFila.entrySet()) {
+
+            String origem = entry.getKey();
+            FilaVeiculos filaVeiculos = entry.getValue();
+
+            Semaforo semaforo = new Semaforo(
+                    idSemaforo,
+                    monitorSemaforos,
+                    3000,                 // tempo de verde
+                    filaVeiculos,         // fila associada
+                    this                  // referência ao cruzamento
+            );
+
+            listaSemaforos.add(semaforo);
+            idSemaforo++;
         }
 
+        // Iniciar servidor TCP
+        threadServidor = new ThreadServidor(portaServidor, this);
+        threadServidor.start();
+
+        // Iniciar clientes TCP
+        for (ThreadCliente cliente : mapaDestinoParaCliente.values()) {
+            cliente.start();
+        }
+
+        // Iniciar Dashboard (opcional)
+        threadDashboardCliente = new ThreadDashboardCliente(ipDashboard, portaDashboard, this);
+        threadDashboardCliente.start();
+
+        // Iniciar semáforos
         for (Semaforo semaforo : listaSemaforos) {
             semaforo.start();
         }
     }
 
-    public void receberVeiculo(Veiculo veiculo, String nomeOrigem) {
-        System.out.printf("[Cruzamento %s] Veículo recebido: %s (origem: %s)%n",
-                nomeCruzamento, veiculo.getId(), nomeOrigem);
-
-        FilaVeiculos filaCorreta = mapaOrigemParaFila.get(nomeOrigem);
-
-        if (filaCorreta != null) {
-            filaCorreta.adicionar(veiculo);
-            System.out.printf("[Cruzamento %s] Veículo %s adicionado à fila de %s%n",
-                    nomeCruzamento, veiculo.getId(), nomeOrigem);
-        } else {
-            System.err.printf("[Cruzamento %s] ERRO: Nenhuma fila mapeada para origem '%s'!%n",
-                    nomeCruzamento, nomeOrigem);
-            System.err.printf("[Cruzamento %s] Origens disponíveis: %s%n",
-                    nomeCruzamento, mapaOrigemParaFila.keySet());
-        }
-    }
-
     /**
-     * ATUALIZADO: Agora notifica o Dashboard do movimento
+     *
+     *
+     * @param veiculo
+     * @param origem
      */
-    public void enviarVeiculoAposPassarSemaforo(Veiculo veiculo, FilaVeiculos fila) {
-        String nomeDestino = mapaFilaParaDestino.get(fila);
+    public void receberVeiculo(Veiculo veiculo, String origem) {
+        FilaVeiculos filaVeiculos = mapaOrigemParaFila.get(origem);
 
-        if (nomeDestino == null) {
-            System.err.printf("[Cruzamento %s] ERRO: Destino não encontrado para a fila!%n",
-                    nomeCruzamento);
+        if (filaVeiculos == null) {
+            System.err.printf("[%s] ERRO: Origem '%s' desconhecida%n", nomeCruzamento, origem);
             return;
         }
 
-        veiculo.avancarCaminho();
-
-        System.out.printf("[Cruzamento %s] Enviando veículo %s para %s%n",
-                nomeCruzamento, veiculo.getId(), nomeDestino);
-
-        // NOVO: Notifica Dashboard do movimento
-        notificarMovimentoDashboard(veiculo.getId(), veiculo.getTipo().name(), nomeDestino);
-
-        enviarVeiculo(nomeDestino, veiculo);
+        filaVeiculos.adicionar(veiculo);
+        System.out.printf("[%s] Recebido veículo %s → fila %s%n", nomeCruzamento, veiculo.getId(), origem);
     }
 
     /**
-     * NOVO: Notifica o Dashboard do movimento de um veículo entre nós
+     * Chamado pelo Semáforo quando um veículo sai da fila
+     *
+     * @param veiculo
+     * @param filaOrigem
      */
-    private void notificarMovimentoDashboard(String idVeiculo, String tipo, String destino) {
-        try (Socket socket = new Socket(ipDashboard, portaDashboard);
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+    public void enviarVeiculoAposPassarSemaforo(Veiculo veiculo, FilaVeiculos filaOrigem) {
 
-            Map<String, Object> conteudo = new HashMap<>();
-            conteudo.put("id", idVeiculo);
-            conteudo.put("tipo", tipo);
-            conteudo.put("origem", nomeCruzamento);
-            conteudo.put("destino", destino);
+        // Avançar o caminho do veículo
+        veiculo.avancarCaminho();
 
-            Mensagem msg = new Mensagem(
-                    "VEICULO_MOVIMENTO",
-                    nomeCruzamento,
-                    "Dashboard",
-                    conteudo
-            );
+        String destino = mapaFilaParaDestino.get(filaOrigem);
 
-            out.println(gson.toJson(msg));
-
-        } catch (Exception e) {
-            // Falha silenciosa para não interromper o fluxo
-            System.err.printf("[Cruzamento %s] Erro ao notificar movimento: %s%n",
-                    nomeCruzamento, e.getMessage());
+        if (destino == null) {
+            System.err.printf("[%s] ERRO: Sem destino para fila!%n", nomeCruzamento);
+            return;
         }
+
+        enviarVeiculoParaDestino(destino, veiculo);
     }
 
-    public void enviarVeiculo(String nomeDestino, Veiculo veiculo) {
-        ThreadCliente threadCliente = mapaClientes.get(nomeDestino);
-        if (threadCliente != null) {
-            threadCliente.enviarVeiculo(veiculo, nomeCruzamento);
-        } else {
-            System.err.printf("[Cruzamento %s] Destino '%s' não encontrado nos clientes!%n",
-                    nomeCruzamento, nomeDestino);
-            System.err.printf("[Cruzamento %s] Clientes disponíveis: %s%n",
-                    nomeCruzamento, mapaClientes.keySet());
+    /**
+     *
+     *
+     * @param destino
+     * @param veiculo
+     */
+    private void enviarVeiculoParaDestino(String destino, Veiculo veiculo) {
+
+        ThreadCliente cliente = mapaDestinoParaCliente.get(destino);
+
+        if (cliente == null) {
+            System.err.printf("[%s] ERRO: Cliente TCP para '%s' não existe%n",
+                    nomeCruzamento, destino);
+            return;
         }
+
+        System.out.printf("[%s] Enviar veículo %s → %s%n",
+                nomeCruzamento, veiculo.getId(), destino);
+
+        cliente.enviarVeiculo(veiculo, nomeCruzamento);
     }
 
+    /**
+     * Gera JSON simplificado para o Dashboard
+     *
+     * @return
+     */
     public String gerarEstatisticasJSON() {
-        List<Map<String, Object>> listaInformacoesSemaforos = new ArrayList<>();
 
-        for (int indice = 0; indice < listaSemaforos.size(); indice++) {
-            Semaforo semaforo = listaSemaforos.get(indice);
-            boolean semaforoAberto = (semaforoAtivo.get() == indice);
-
-            Map<String, Object> informacaoSemaforo = new HashMap<>();
-            informacaoSemaforo.put("nome", semaforo.getNome());
-            informacaoSemaforo.put("estado", semaforoAberto ? "VERDE" : "VERMELHO");
-            informacaoSemaforo.put("tamanhoFila", semaforo.getTamanhoFila());
-            listaInformacoesSemaforos.add(informacaoSemaforo);
-        }
-
-        Map<String, Object> estadoCruzamento = new HashMap<>();
-        estadoCruzamento.put("cruzamento", nomeCruzamento);
-        estadoCruzamento.put("semaforos", listaInformacoesSemaforos);
-
-        return gson.toJson(estadoCruzamento);
-    }
-
-    public void parar() {
-        ativo = false;
+        List<Map<String, Object>> listaInfo = new ArrayList<>();
 
         for (Semaforo semaforo : listaSemaforos) {
-            semaforo.parar();
+            Map<String, Object> info = new HashMap<>();
+            info.put("id", semaforo.getIdSemaforo());
+            info.put("estado", semaforo.isVerde() ? "VERDE" : "VERMELHO");
+            info.put("tamanhoFila", semaforo.getTamanhoFila());
+            listaInfo.add(info);
         }
 
-        for (ThreadCliente threadCliente : mapaClientes.values()) {
-            threadCliente.parar();
-        }
+        Map<String, Object> root = new HashMap<>();
+        root.put("cruzamento", nomeCruzamento);
+        root.put("semaforos", listaInfo);
 
-        threadServidor.pararServidor();
-        threadDashboardCliente.parar();
-
-        System.out.println("=== Cruzamento " + nomeCruzamento + " parado ===");
+        return gson.toJson(root);
     }
 
-    public String getNomeCruzamento() { return nomeCruzamento; }
-    public List<Semaforo> getListaSemaforos() { return listaSemaforos; }
+
+    /**
+     *
+     *
+     */
+    public void parar() {
+
+        for (Semaforo semaforo : listaSemaforos) {
+            semaforo.pararSemaforo();
+        }
+
+        for (ThreadCliente cliente : mapaDestinoParaCliente.values()) {
+            cliente.parar();
+        }
+
+        if (threadServidor != null) {
+            threadServidor.pararServidor();
+        }
+
+        if (threadDashboardCliente != null) {
+            threadDashboardCliente.parar();
+        }
+    }
 }

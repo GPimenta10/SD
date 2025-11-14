@@ -34,7 +34,7 @@ public class DashboardFrame extends JFrame {
         // 🔧 NOVO: Configurar tamanhos preferenciais
         painelEstatisticas.setPreferredSize(new Dimension(1000, 80));
         painelMapa.setPreferredSize(new Dimension(1000, 500));
-        painelVeiculos.setPreferredSize(new Dimension(1000, 200));
+        painelVeiculos.setPreferredSize(new Dimension(1000, 100));
 
         // === Adição à janela ===
         add(painelEstatisticas, BorderLayout.NORTH);

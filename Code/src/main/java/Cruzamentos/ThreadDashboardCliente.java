@@ -18,7 +18,7 @@ public class ThreadDashboardCliente extends Thread {
     private volatile boolean ativo = true;
 
     // Intervalo entre atualizações (em ms)
-    private static final long INTERVALO_ENVIO_MS = 3000;
+    private static final long INTERVALO_ENVIO_MS = 1000;
 
     /**
      * Construtor do cliente do Dashboard.
