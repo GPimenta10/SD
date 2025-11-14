@@ -7,6 +7,7 @@ public class Semaforo extends Thread {
     private final int semaforoId;
     private final MonitorSemaforos monitorSemaforos;
     private final long duracaoSinalVerdeMs;
+    private final String origem; // NOVO
 
     private FilaVeiculos filaVeiculos;
     private final Cruzamento cruzamentoAtual;
@@ -14,11 +15,12 @@ public class Semaforo extends Thread {
     private boolean estadoVerde;
     private volatile boolean semaforoAtivo = true;
 
-    public Semaforo(int semaforoId, MonitorSemaforos monitorSemaforos, long duracaoSinalVerdeMs, FilaVeiculos filaVeiculos, Cruzamento  cruzamentoAtual) {
+    public Semaforo(int semaforoId, String origem, MonitorSemaforos monitorSemaforos, long duracaoSinalVerdeMs, FilaVeiculos filaVeiculos, Cruzamento  cruzamentoAtual) {
         this.semaforoId = semaforoId;
         this.monitorSemaforos = monitorSemaforos;
         this.duracaoSinalVerdeMs = duracaoSinalVerdeMs;
         this.filaVeiculos = filaVeiculos;
+        this.origem = origem; // NOVO
         this.cruzamentoAtual = cruzamentoAtual;
 
         setDaemon(true);
@@ -26,6 +28,14 @@ public class Semaforo extends Thread {
 
     public int getIdSemaforo() {
         return semaforoId;
+    }
+
+    public String getOrigem() {
+        return origem;
+    }
+
+    public FilaVeiculos getFilaVeiculos() {
+        return filaVeiculos;
     }
 
     public boolean isVerde() {
