@@ -50,15 +50,13 @@ public class Semaforo extends Thread {
     public void run() {
         try {
             while (semaforoAtivo) {
-
                 // Espera pela vez deste semáforo
                 monitorSemaforos.esperarVez(semaforoId);
-
                 if (!semaforoAtivo) break;
 
                 // --- SINAL VERDE ---
                 estadoVerde = true;
-                System.out.println("\nSemáforo " + semaforoId + " = VERDE");
+                System.out.println("\nSemaforo " + semaforoId + " = VERDE");
 
                 long inicioVerde = System.currentTimeMillis();
 
@@ -66,7 +64,7 @@ public class Semaforo extends Thread {
                     Veiculo veiculo = filaVeiculos.removerSeDisponivel();
 
                     if (veiculo != null) {
-                        System.out.println("[Semáforo " + semaforoId + "] Veículo passou: " + veiculo.getId());
+                        System.out.println("[Semaforo " + semaforoId + "] Veiculo passou: " + veiculo.getId());
 
                         // Envia para o próximo cruzamento, se existir
                         if (cruzamentoAtual != null) {
@@ -83,8 +81,10 @@ public class Semaforo extends Thread {
                 }
 
                 // --- SINAL VERMELHO ---
-                System.out.println("Semáforo " + semaforoId + " = VERMELHO");
+                System.out.println("Semaforo " + semaforoId + " = VERMELHO");
                 estadoVerde = false;
+
+                Thread.sleep(2000);
 
                 // Passa para o próximo semáforo
                 monitorSemaforos.proximaVez();
