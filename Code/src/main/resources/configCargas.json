@@ -1,0 +1,16 @@
+{
+  "cargas": {
+    "BAIXA": {
+      "totalVeiculos": 30,
+      "intervaloMs": 2000
+    },
+    "MEDIA": {
+      "totalVeiculos": 100,
+      "intervaloMs": 1500
+    },
+    "ALTA": {
+      "totalVeiculos": 250,
+      "intervaloMs": 500
+    }
+  }
+}
