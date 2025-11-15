@@ -1,63 +1,47 @@
 package PontosEntrada;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * Versão SIMPLIFICADA para teste
- * TODOS os veículos de E3 vão direto para S via Cr3
- */
 public class Caminhos {
 
-    /**
-     * Para teste: retorna sempre o caminho mais curto
-     */
-    public static List<String> gerarCaminho(PontoEntrada entrada) {
+    private static final ThreadLocalRandom random = ThreadLocalRandom.current();
 
-        System.out.printf("[Caminhos] Gerando caminho para %s...%n", entrada);
+    public static List<String> gerarCaminho(PontoEntrada entrada) {
+        double p = random.nextDouble(); // Aleatório entre 0.0 e 1.0
 
         switch (entrada) {
-            case E3:
-                // TESTE: Apenas o caminho direto E3 → Cr3 → S
-                List<String> caminho = Arrays.asList("Cr3", "S");
-                System.out.printf("[Caminhos] Caminho gerado: %s%n", caminho);
-                return caminho;
-
             case E1:
-                return Arrays.asList("Cr1", "Cr4", "Cr5", "S");
-
+                if (p < 0.34) { // 34%
+                    return Arrays.asList("Cr1", "Cr4", "Cr5", "S");
+                } else if (p < 0.67) { // 33%
+                    return Arrays.asList("Cr1", "Cr2", "Cr5", "S");
+                } else { // 33%
+                    return Arrays.asList("Cr1", "Cr2", "Cr3", "S");
+                }
+            
             case E2:
-                return Arrays.asList("Cr2", "Cr5", "S");
-
+                if (p < 0.34) { // 34%
+                    return Arrays.asList("Cr2", "Cr5", "S");
+                } else if (p < 0.67) { // 33%
+                    return Arrays.asList("Cr2", "Cr3", "S");
+                } else { // 33%
+                    return Arrays.asList("Cr2", "Cr1", "Cr4", "Cr5", "S");
+                }
+            
+            case E3:
+                if (p < 0.34) { // 34%
+                    return Arrays.asList("Cr3", "S");
+                } else if (p < 0.67) { // 33%
+                    return Arrays.asList("Cr3", "Cr2", "Cr5", "S");
+                } else { // 33%
+                    return Arrays.asList("Cr3", "Cr2", "Cr1", "Cr4", "Cr5", "S");
+                }
+            
             default:
-                System.err.println("[Caminhos] ERRO: Entrada desconhecida: " + entrada);
                 return Collections.singletonList("S");
         }
-    }
-
-    /**
-     * Retorna todos os caminhos possíveis (para análise futura)
-     */
-    public static List<List<String>> getTodosCaminhos(PontoEntrada entrada) {
-        List<List<String>> caminhos = new ArrayList<>();
-
-        switch (entrada) {
-            case E1:
-                caminhos.add(Arrays.asList("Cr1", "Cr4", "Cr5", "S"));
-                caminhos.add(Arrays.asList("Cr1", "Cr2", "Cr5", "S"));
-                caminhos.add(Arrays.asList("Cr1", "Cr2", "Cr3", "S"));
-                break;
-            case E2:
-                caminhos.add(Arrays.asList("Cr2", "Cr5", "S"));
-                caminhos.add(Arrays.asList("Cr2", "Cr3", "S"));
-                caminhos.add(Arrays.asList("Cr2", "Cr1", "Cr4", "Cr5", "S"));
-                break;
-            case E3:
-                caminhos.add(Arrays.asList("Cr3", "S"));
-                caminhos.add(Arrays.asList("Cr3", "Cr2", "Cr5", "S"));
-                caminhos.add(Arrays.asList("Cr3", "Cr2", "Cr1", "Cr4", "Cr5", "S"));
-                break;
-        }
-
-        return caminhos;
     }
 }
