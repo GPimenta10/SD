@@ -1,11 +1,12 @@
 package Cruzamentos;
 
-import Rede.Cliente;
-import Rede.Mensagem;
-import com.google.gson.Gson;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import com.google.gson.Gson;
+
+import Rede.Cliente;
+import Rede.Mensagem;
 
 /**
  * Thread responsável por enviar periodicamente o estado do cruzamento ao Dashboard.
@@ -18,7 +19,7 @@ public class ThreadDashboardCliente extends Thread {
     private volatile boolean ativo = true;
 
     // Intervalo entre atualizações (em ms)
-    private static final long INTERVALO_ENVIO_MS = 3000;
+    private static final long INTERVALO_ENVIO_MS = 1000;
 
     /**
      * Construtor do cliente do Dashboard.
@@ -38,14 +39,21 @@ public class ThreadDashboardCliente extends Thread {
         System.out.printf("[DashboardCliente %s] Iniciado. Enviando estatísticas para Dashboard...%n",
                 cruzamento.getNomeCruzamento());
 
+        try {
+            // Pequeno atraso inicial para dar tempo ao Dashboard de se inicializar
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         while (ativo) {
             try {
-                // Gera JSON com o estado atual do cruzamento
-                String estatisticasJson = cruzamento.gerarEstatisticasJSON();
+                // Obtém o mapa de estatísticas diretamente do cruzamento
+                Map<String, Object> estadoCruzamento = cruzamento.gerarEstatisticas();
 
                 // Cria a mensagem de tipo "ESTATISTICA"
                 Map<String, Object> conteudo = new HashMap<>();
-                conteudo.put("estado", gson.fromJson(estatisticasJson, Object.class));
+                conteudo.put("estado", estadoCruzamento);
 
                 Mensagem mensagem = new Mensagem(
                         "ESTATISTICA",

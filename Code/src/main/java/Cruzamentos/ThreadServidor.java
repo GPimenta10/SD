@@ -14,8 +14,7 @@ import java.net.Socket;
  * Thread específica de servidor para um cruzamento.
  * Escuta numa porta TCP e processa mensagens recebidas de outros cruzamentos.
  *
- * CORREÇÃO: Agora extrai e passa a origem do veículo ao cruzamento
- */
+*/
 public class ThreadServidor extends Thread {
 
     private final int portaServidor;
