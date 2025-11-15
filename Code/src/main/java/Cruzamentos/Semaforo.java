@@ -7,6 +7,7 @@ public class Semaforo extends Thread {
     private final int semaforoId;
     private final MonitorSemaforos monitorSemaforos;
     private final long duracaoSinalVerdeMs;
+    private final String origem; // NOVO
 
     private FilaVeiculos filaVeiculos;
     private final Cruzamento cruzamentoAtual;
@@ -14,11 +15,12 @@ public class Semaforo extends Thread {
     private boolean estadoVerde;
     private volatile boolean semaforoAtivo = true;
 
-    public Semaforo(int semaforoId, MonitorSemaforos monitorSemaforos, long duracaoSinalVerdeMs, FilaVeiculos filaVeiculos, Cruzamento  cruzamentoAtual) {
+    public Semaforo(int semaforoId, String origem, MonitorSemaforos monitorSemaforos, long duracaoSinalVerdeMs, FilaVeiculos filaVeiculos, Cruzamento  cruzamentoAtual) {
         this.semaforoId = semaforoId;
         this.monitorSemaforos = monitorSemaforos;
         this.duracaoSinalVerdeMs = duracaoSinalVerdeMs;
         this.filaVeiculos = filaVeiculos;
+        this.origem = origem; // NOVO
         this.cruzamentoAtual = cruzamentoAtual;
 
         setDaemon(true);
@@ -26,6 +28,14 @@ public class Semaforo extends Thread {
 
     public int getIdSemaforo() {
         return semaforoId;
+    }
+
+    public String getOrigem() {
+        return origem;
+    }
+
+    public FilaVeiculos getFilaVeiculos() {
+        return filaVeiculos;
     }
 
     public boolean isVerde() {
@@ -40,15 +50,13 @@ public class Semaforo extends Thread {
     public void run() {
         try {
             while (semaforoAtivo) {
-
                 // Espera pela vez deste semáforo
                 monitorSemaforos.esperarVez(semaforoId);
-
                 if (!semaforoAtivo) break;
 
                 // --- SINAL VERDE ---
                 estadoVerde = true;
-                System.out.println("\nSemáforo " + semaforoId + " = VERDE");
+                System.out.println("\nSemaforo " + semaforoId + " = VERDE");
 
                 long inicioVerde = System.currentTimeMillis();
 
@@ -56,7 +64,7 @@ public class Semaforo extends Thread {
                     Veiculo veiculo = filaVeiculos.removerSeDisponivel();
 
                     if (veiculo != null) {
-                        System.out.println("[Semáforo " + semaforoId + "] Veículo passou: " + veiculo.getId());
+                        System.out.println("[Semaforo " + semaforoId + "] Veiculo passou: " + veiculo.getId());
 
                         // Envia para o próximo cruzamento, se existir
                         if (cruzamentoAtual != null) {
@@ -73,8 +81,10 @@ public class Semaforo extends Thread {
                 }
 
                 // --- SINAL VERMELHO ---
-                System.out.println("Semáforo " + semaforoId + " = VERMELHO");
+                System.out.println("Semaforo " + semaforoId + " = VERMELHO");
                 estadoVerde = false;
+
+                Thread.sleep(2000);
 
                 // Passa para o próximo semáforo
                 monitorSemaforos.proximaVez();

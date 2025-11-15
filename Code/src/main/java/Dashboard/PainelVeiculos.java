@@ -24,11 +24,11 @@ public class PainelVeiculos extends JPanel {
         setLayout(new BorderLayout());
         setBorder(BorderFactory.createTitledBorder("Veículos que Saíram do Sistema"));
 
-        String[] colunas = {"ID", "Tipo", "Entrada", "Percurso", "Tempo (s)"};
+        String[] colunas = {"ID", "Tipo", "Percurso", "Tempo Total"};
         modeloTabela = new DefaultTableModel(colunas, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Torna a tabela não editável
+                return false;
             }
         };
 
@@ -42,9 +42,8 @@ public class PainelVeiculos extends JPanel {
         // Ajusta larguras das colunas
         tabela.getColumnModel().getColumn(0).setPreferredWidth(100); // ID
         tabela.getColumnModel().getColumn(1).setPreferredWidth(80);  // Tipo
-        tabela.getColumnModel().getColumn(2).setPreferredWidth(80);  // Entrada
-        tabela.getColumnModel().getColumn(3).setPreferredWidth(250); // Percurso
-        tabela.getColumnModel().getColumn(4).setPreferredWidth(90);  // Tempo
+        tabela.getColumnModel().getColumn(2).setPreferredWidth(250); // Percurso
+        tabela.getColumnModel().getColumn(3).setPreferredWidth(90);  // Tempo
 
         // 🔧 NOVO: ScrollPane com scroll vertical sempre visível
         scrollPane = new JScrollPane(tabela);
@@ -56,8 +55,8 @@ public class PainelVeiculos extends JPanel {
 
     /**
      * Adiciona um veículo à tabela de saídas
-     * 🔧 CORREÇÃO: Agora rola automaticamente para o último item adicionado
-     */
+     * Não está a ser usado
+     *
     public synchronized void adicionarVeiculo(String id, String tipo, String entrada, String percurso, double tempo) {
         SwingUtilities.invokeLater(() -> {
             modeloTabela.addRow(new Object[]{id, tipo, entrada, percurso, String.format("%.2f", tempo)});
@@ -68,10 +67,16 @@ public class PainelVeiculos extends JPanel {
                 tabela.scrollRectToVisible(tabela.getCellRect(ultimaLinha, 0, true));
             }
         });
-    }
+    }*/
 
     /**
-     * Adiciona veículo que saiu com dados detalhados do JSON
+     * Adiciona veículo que saiu do sistema à tabela com dados detalhados do JSON
+     *
+     * @param id - ID Veiculo
+     * @param tipo - Tipo Veiculo
+     * @param entrada - Local por onde o veículo entrou
+     * @param caminho - Caminho percorrido até à saida do sistema
+     * @param tempoTotal - Tempo que demorou a percorer o sistema
      */
     public void adicionarVeiculoSaiu(String id, String tipo, String entrada, JsonArray caminho, double tempoTotal) {
         SwingUtilities.invokeLater(() -> {
@@ -82,11 +87,20 @@ public class PainelVeiculos extends JPanel {
                 if (i < caminho.size() - 1) percurso.append(" → ");
             }
 
+            StringBuilder percursoCompleto = new StringBuilder();
+            percursoCompleto.append(entrada);
+
+            for (int i = 0; i < caminho.size(); i++) {
+                percursoCompleto.append(" → ").append(caminho.get(i).getAsString());
+            }
+
             modeloTabela.addRow(new Object[]{
-                    id, tipo, entrada, percurso.toString(), String.format("%.2f", tempoTotal)
+                    id,
+                    tipo,
+                    percursoCompleto.toString(),
+                    String.format("%.2f", tempoTotal)
             });
 
-            // 🔧 NOVO: Scroll automático para a última linha
             int ultimaLinha = modeloTabela.getRowCount() - 1;
             if (ultimaLinha >= 0) {
                 tabela.scrollRectToVisible(tabela.getCellRect(ultimaLinha, 0, true));

@@ -1,11 +1,25 @@
-import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
 
-    private static final String CLASSPATH =
-            "target/classes;C:\\Users\\Gabriel\\.m2\\repository\\com\\google\\code\\gson\\gson\\2.10.1\\gson-2.10.1.jar";
+    private static final String CLASSPATH = buildClasspath();
+
+    //ADICONADO PARA CORRER EM QUALQUER PC
+    private static String buildClasspath() {
+        // Separador de classpath dependente do SO (';' para Windows, ':' para Linux/Mac)
+        String separator = System.getProperty("path.separator");
+
+        // Caminho para o repositório local do Maven
+        String m2Repo = Paths.get(System.getProperty("user.home"), ".m2", "repository").toString();
+
+        // Caminho para a dependência GSON
+        String gsonPath = Paths.get(m2Repo, "com", "google", "code", "gson", "gson", "2.10.1", "gson-2.10.1.jar").toString();
+
+        return String.join(separator, "target/classes", gsonPath);
+    }
 
     public static void main(String[] args) {
 

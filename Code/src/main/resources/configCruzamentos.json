@@ -1,0 +1,44 @@
+{
+  "cruzamentos": [
+    {
+      "nome": "Cr2",
+      "portaServidor": 5002,
+      "ipDashboard": "localhost",
+      "portaDashboard": 6000,
+      "ligacoes": [
+        {
+          "origem": "E2",
+          "destino": "Cr3",
+          "ip": "localhost",
+          "porta": 5003
+        },
+        {
+          "origem": "Cr1",
+          "destino": "Cr3",
+          "ip": "localhost",
+          "porta": 5003
+        }
+      ]
+    },
+    {
+      "nome": "Cr3",
+      "portaServidor": 5003,
+      "ipDashboard": "localhost",
+      "portaDashboard": 6000,
+      "ligacoes": [
+        {
+          "origem": "E3",
+          "destino": "S",
+          "ip": "localhost",
+          "porta": 5999
+        },
+        {
+          "origem": "Cr2",
+          "destino": "S",
+          "ip": "localhost",
+          "porta": 5999
+        }
+      ]
+    }
+  ]
+}

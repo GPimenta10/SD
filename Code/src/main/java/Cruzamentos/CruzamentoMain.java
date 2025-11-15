@@ -17,7 +17,7 @@ import java.util.Map;
  *
  * Este processo:
  * 1. Recebe o nome do cruzamento como argumento
- * 2. Lê o config.json
+ * 2. Lê o configCruzamentos.json
  * 3. Filtra apenas a configuração do cruzamento especificado
  * 4. Cria e inicia APENAS esse cruzamento
  * 5. Mantém o processo ativo
@@ -42,10 +42,10 @@ public class CruzamentoMain {
 
         try {
             // === LER CONFIGURAÇÃO DO JSON ===
-            InputStream in = CruzamentoMain.class.getResourceAsStream("/config.json");
+            InputStream in = CruzamentoMain.class.getResourceAsStream("/configCruzamentos.json");
 
             if (in == null) {
-                System.err.println("[CruzamentoMain] ERRO: Ficheiro config.json não encontrado!");
+                System.err.println("[CruzamentoMain] ERRO: Ficheiro configCruzamentos.json não encontrado!");
                 System.exit(1);
             }
 
@@ -57,7 +57,7 @@ public class CruzamentoMain {
             List<Map<String, Object>> cruzamentos = config.get("cruzamentos");
 
             if (cruzamentos == null || cruzamentos.isEmpty()) {
-                System.err.println("[CruzamentoMain] ERRO: Nenhum cruzamento encontrado no config.json!");
+                System.err.println("[CruzamentoMain] ERRO: Nenhum cruzamento encontrado no configCruzamentos.json!");
                 System.exit(1);
             }
 
@@ -73,7 +73,7 @@ public class CruzamentoMain {
             }
 
             if (configCruzamento == null) {
-                System.err.printf("[CruzamentoMain] ERRO: Cruzamento '%s' não encontrado no config.json!%n",
+                System.err.printf("[CruzamentoMain] ERRO: Cruzamento '%s' não encontrado no configCruzamentos.json!%n",
                         nomeCruzamento);
                 System.err.println("[CruzamentoMain] Cruzamentos disponíveis:");
                 for (Map<String, Object> c : cruzamentos) {

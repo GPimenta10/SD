@@ -1,12 +1,16 @@
 package Cruzamentos;
 
-import Rede.Mensagem;
-import Veiculo.Veiculo;
-import com.google.gson.Gson;
-
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.google.gson.Gson;
+
+import Veiculo.Veiculo;
 
 /**
  * Classe Cruzamento responsável por:
@@ -103,6 +107,7 @@ public class Cruzamento {
 
             Semaforo semaforo = new Semaforo(
                     idSemaforo,
+                    origem,
                     monitorSemaforos,
                     3000,                 // tempo de verde
                     filaVeiculos,         // fila associada
@@ -168,6 +173,9 @@ public class Cruzamento {
             return;
         }
 
+        // NOTIFICAR DASHBOARD DO MOVIMENTO
+        notificarDashboardMovimento(veiculo, nomeCruzamento, destino);
+
         enviarVeiculoParaDestino(destino, veiculo);
     }
 
@@ -193,13 +201,45 @@ public class Cruzamento {
         cliente.enviarVeiculo(veiculo, nomeCruzamento);
     }
 
+//ADICIONADO -------------------------------------------------------------------------------
     /**
-     * Gera JSON simplificado para o Dashboard
+     * NOVO: Notifica o Dashboard sobre o movimento de um veículo.
      *
-     * @return
+     * @param veiculo O veículo que se moveu.
+     * @param origem  O ponto de partida do movimento (este cruzamento).
+     * @param destino O próximo ponto no caminho do veículo.
      */
-    public String gerarEstatisticasJSON() {
+    private void notificarDashboardMovimento(Veiculo veiculo, String origem, String destino) {
+        // Usa o IP e a Porta do Dashboard configurados para este cruzamento
+        try (Socket socket = new Socket(ipDashboard, portaDashboard);
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
+            Map<String, Object> conteudo = new HashMap<>();
+            conteudo.put("id", veiculo.getId());
+            conteudo.put("tipo", veiculo.getTipo().name());
+            conteudo.put("origem", origem);
+            conteudo.put("destino", destino);
+
+            // O tipo da mensagem é o mesmo que o gerador usa
+            Map<String, Object> mensagem = new HashMap<>();
+            mensagem.put("tipo", "VEICULO_MOVIMENTO");
+            mensagem.put("remetente", origem);
+            mensagem.put("destinatario", "Dashboard");
+            mensagem.put("conteudo", conteudo);
+
+            out.println(gson.toJson(mensagem));
+
+        } catch (IOException e) {
+            System.err.printf("[%s] Falha ao notificar Dashboard sobre movimento: %s%n", nomeCruzamento, e.getMessage());
+        }
+    }
+
+    /**
+     * Gera um mapa com as estatísticas do cruzamento para o Dashboard.
+     *
+     * @return Um mapa contendo o estado do cruzamento e dos seus semáforos.
+     */
+    public Map<String, Object> gerarEstatisticas() {
         List<Map<String, Object>> listaInfo = new ArrayList<>();
 
         for (Semaforo semaforo : listaSemaforos) {
@@ -207,6 +247,9 @@ public class Cruzamento {
             info.put("id", semaforo.getIdSemaforo());
             info.put("estado", semaforo.isVerde() ? "VERDE" : "VERMELHO");
             info.put("tamanhoFila", semaforo.getTamanhoFila());
+            info.put("origem", semaforo.getOrigem());
+            // ✓ CORREÇÃO: destino deve ser o próprio cruzamento, não o destino final
+            info.put("destino", nomeCruzamento); // ← MUDA ISTO
             listaInfo.add(info);
         }
 
@@ -214,7 +257,7 @@ public class Cruzamento {
         root.put("cruzamento", nomeCruzamento);
         root.put("semaforos", listaInfo);
 
-        return gson.toJson(root);
+        return root;
     }
 
 

@@ -23,7 +23,7 @@ public class PainelEstatisticas extends JPanel {
     private int e1 = 0, e2 = 0, e3 = 0, saida = 0;
 
     public PainelEstatisticas() {
-        setLayout(new GridLayout(1, 5, 15, 10));
+        setLayout(new GridLayout(5, 2, 15, 10));
         setBorder(BorderFactory.createTitledBorder(
                 BorderFactory.createLineBorder(Color.DARK_GRAY, 2),
                 "📊 Estatísticas Globais do Sistema",
