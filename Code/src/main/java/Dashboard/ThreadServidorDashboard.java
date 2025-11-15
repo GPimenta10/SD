@@ -112,7 +112,7 @@ public class ThreadServidorDashboard extends Thread {
         String origem = conteudo.get("origem").getAsString();
         String destino = conteudo.get("destino").getAsString();
 
-        SwingUtilities.invokeLater(() -> dashboardFrame.getPainelMapa().adicionarVeiculo(id, tipo, origem, destino)
+        SwingUtilities.invokeLater(() -> dashboardFrame.getPainelMapa().atualizarOuCriarVeiculo(id, tipo, origem, destino)
         );
 
         System.out.printf("[DashboardServidor] Movimento: %s (%s) de %s → %s%n", id, tipo, origem, destino);
