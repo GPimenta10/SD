@@ -41,10 +41,10 @@ public class ThreadServidorSaida extends Thread {
             }
         } catch (Exception e) {
             if (ativo) {
-                System.err.println("[ThreadServidor Saída] ❌ Erro no servidor: " + e.getMessage());
+                System.err.println("[ThreadServidor Saída] Erro no servidor: " + e.getMessage());
                 e.printStackTrace();
             } else {
-                System.out.println("[ThreadServidor Saída] ✓ Servidor encerrado.");
+                System.out.println("[ThreadServidor Saída] Servidor encerrado.");
             }
         }
     }
@@ -66,7 +66,7 @@ public class ThreadServidorSaida extends Thread {
                     Object objVeiculo = mensagem.getConteudo().get("veiculo");
 
                     if (objVeiculo == null) {
-                        System.err.println("[ThreadServidor Saída] ❌ ERRO: Campo 'veiculo' não encontrado!");
+                        System.err.println("[ThreadServidor Saída] ERRO: Campo 'veiculo' não encontrado!");
                         System.err.printf("[ThreadServidor Saída] Conteúdo: %s%n", mensagem.getConteudo());
                         continue;
                     }
