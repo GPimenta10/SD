@@ -6,17 +6,11 @@ public class Main {
 
     private static final String CLASSPATH = buildClasspath();
 
-//ADICONADO PARA CORRER EM QUALQUER PC
     private static String buildClasspath() {
-        // Separador de classpath dependente do SO (';' para Windows, ':' para Linux/Mac)
+        
         String separator = System.getProperty("path.separator");
-
-        // Caminho para o repositório local do Maven
         String m2Repo = Paths.get(System.getProperty("user.home"), ".m2", "repository").toString();
-
-        // Caminho para a dependência GSON
         String gsonPath = Paths.get(m2Repo, "com", "google", "code", "gson", "gson", "2.10.1", "gson-2.10.1.jar").toString();
-
         return String.join(separator, "target/classes", gsonPath);
     }
 
@@ -50,6 +44,30 @@ public class Main {
             Thread.sleep(1000);
 
             // ======================================
+            // CRUZAMENTO CR1
+            // ======================================
+            System.out.println("• Iniciando Cruzamento Cr1...");
+            Process cr1Proc = new ProcessBuilder(
+                    "java", "-cp", CLASSPATH,
+                    "Cruzamentos.CruzamentoMain",
+                    "Cr1"
+            ).inheritIO().start();
+            processos.add(cr1Proc);
+            Thread.sleep(1500);
+
+            // ======================================
+            // CRUZAMENTO CR2
+            // ======================================
+            System.out.println("• Iniciando Cruzamento Cr2...");
+            Process cr2Proc = new ProcessBuilder(
+                    "java", "-cp", CLASSPATH,
+                    "Cruzamentos.CruzamentoMain",
+                    "Cr2"
+            ).inheritIO().start();
+            processos.add(cr2Proc);
+            Thread.sleep(1500);
+
+            // ======================================
             // 3. CRUZAMENTO CR3
             // ======================================
             System.out.println("• Iniciando Cruzamento Cr3...");
@@ -62,20 +80,44 @@ public class Main {
             Thread.sleep(1500);
 
             // ======================================
-            // 4. GERADOR DE E3
+            // CRUZAMENTO CR4
             // ======================================
-            System.out.println("• Iniciando Gerador E3...");
-            Process geradorE3Proc = new ProcessBuilder(
+            System.out.println("• Iniciando Cruzamento Cr4...");
+            Process cr4Proc = new ProcessBuilder(
                     "java", "-cp", CLASSPATH,
-                    "PontosEntrada.ProcessMainE3"
+                    "Cruzamentos.CruzamentoMain",
+                    "Cr4"
             ).inheritIO().start();
-            processos.add(geradorE3Proc);
+            processos.add(cr4Proc);
+            Thread.sleep(1500);
+
+            // ======================================
+            // CRUZAMENTO CR5
+            // ======================================
+            System.out.println("• Iniciando Cruzamento Cr5...");
+            Process cr5Proc = new ProcessBuilder(
+                    "java", "-cp", CLASSPATH,
+                    "Cruzamentos.CruzamentoMain",
+                    "Cr5"
+            ).inheritIO().start();
+            processos.add(cr5Proc);
+            Thread.sleep(1500);
+
+            // ======================================
+            // 4. GERADORES via config (apenas E3 para este cenário) "PontosEntrada.PontosEntradasMain", "--only=E1"
+            // ======================================
+            System.out.println("• Iniciando Geradores (apenas E3 via --only=E3)...");
+            Process geradoresProc = new ProcessBuilder(
+                "java", "-cp", CLASSPATH,
+                "PontosEntrada.PontosEntradasMain", "--only=E3"
+            ).inheritIO().start();
+            processos.add(geradoresProc);
 
             System.out.println("\n=== SISTEMA EM EXECUÇÃO ===");
             System.out.println("Dashboard ativo, veículos a circular...");
             System.out.println("Pressiona CTRL+C para sair mais cedo.\n");
 
-            Thread.sleep(30_000); // 30 segundos de teste
+            Thread.sleep(60_000); // 30 segundos de teste
 
         } catch (Exception e) {
             System.err.println("\nERRO: " + e.getMessage());
@@ -97,6 +139,6 @@ public class Main {
             }
         }
 
-        System.out.println("✓ Todos os processos encerrados.\n");
+    System.out.println("✓ Todos os processos encerrados.\n");
     }
 }
