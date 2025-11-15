@@ -50,8 +50,7 @@ public class Saida {
     /**
      * Regista um veículo que saiu do sistema.
      * Atualiza o tempo de saída e armazena para estatísticas.
-     *
-     * 🔧 CORREÇÃO: Agora notifica imediatamente o Dashboard
+     * ATUALIZADO: Logs detalhados + notificação imediata ao Dashboard
      */
     public void registarVeiculo(Veiculo veiculo) {
         long tempoSaida = System.currentTimeMillis();
@@ -62,13 +61,23 @@ public class Saida {
 
         veiculosSaidos.add(veiculo);
 
-        System.out.printf("[Saida] Veículo %s (%s) saiu do sistema. Tempo total: %.2f s%n",
-                veiculo.getId(),
-                veiculo.getTipo(),
-                tempoTotalSegundos);
+        System.out.println("=".repeat(60));
+        System.out.printf("[Saida] 🎯 VEÍCULO SAIU DO SISTEMA%n");
+        System.out.printf("[Saida]    ID: %s%n", veiculo.getId());
+        System.out.printf("[Saida]    Tipo: %s%n", veiculo.getTipo());
+        System.out.printf("[Saida]    Entrada: %s%n", veiculo.getPontoEntrada());
+        System.out.printf("[Saida]    Caminho: %s%n", veiculo.getCaminho());
+        System.out.printf("[Saida]    Tempo no sistema: %.2f segundos%n", tempoTotalSegundos);
+        System.out.printf("[Saida]    Total de saídas: %d%n", veiculosSaidos.size());
+        System.out.println("=".repeat(60));
 
-        // 🔧 NOVO: Notifica o dashboard imediatamente
+        // Notifica o Dashboard imediatamente
+        System.out.printf("[Saida] 📤 Notificando Dashboard sobre saída do veículo %s...%n",
+                veiculo.getId());
+
         saidaComunicDash.enviarVeiculoSaiu(veiculo, tempoTotalSegundos);
+
+        System.out.printf("[Saida] ✅ Dashboard notificado com sucesso!%n");
     }
 
     /** Lista imutável dos veículos já processados. */
