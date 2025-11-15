@@ -1,4 +1,3 @@
-import java.io.PrintStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,37 +6,31 @@ public class Main {
 
     private static final String CLASSPATH = buildClasspath();
 
-    //ADICONADO PARA CORRER EM QUALQUER PC
     private static String buildClasspath() {
-        // Separador de classpath dependente do SO (';' para Windows, ':' para Linux/Mac)
         String separator = System.getProperty("path.separator");
-
-        // Caminho para o repositório local do Maven
         String m2Repo = Paths.get(System.getProperty("user.home"), ".m2", "repository").toString();
-
-        // Caminho para a dependência GSON
         String gsonPath = Paths.get(m2Repo, "com", "google", "code", "gson", "gson", "2.10.1", "gson-2.10.1.jar").toString();
-
         return String.join(separator, "target/classes", gsonPath);
     }
 
     public static void main(String[] args) {
 
         List<Process> processos = new ArrayList<>();
+        Process dashboardProc = null;
 
         try {
-            System.out.println("\n=== INICIANDO TESTE COMPLETO: Dashboard + E3 → Cr3 → S ===\n");
+            System.out.println("\n=== INICIANDO TESTE COMPLETO: Dashboard + Cruzamentos + E3 ===\n");
 
             // ======================================
             // 1. DASHBOARD
             // ======================================
             System.out.println("• Iniciando Dashboard...");
-            Process dashboardProc = new ProcessBuilder(
+            dashboardProc = new ProcessBuilder(
                     "java", "-cp", CLASSPATH,
                     "Dashboard.DashboardMain"
             ).inheritIO().start();
             processos.add(dashboardProc);
-            Thread.sleep(2500); // tempo para abrir a janela do Swing
+            Thread.sleep(2500);
 
             // ======================================
             // 2. SAÍDA S
@@ -51,32 +44,57 @@ public class Main {
             Thread.sleep(1000);
 
             // ======================================
-            // 3. CRUZAMENTO CR3
+            // 3. CRUZAMENTOS (Cr1, Cr2, Cr3, Cr4, Cr5)
             // ======================================
-            System.out.println("• Iniciando Cruzamento Cr3...");
-            Process cr3Proc = new ProcessBuilder(
-                    "java", "-cp", CLASSPATH,
-                    "Cruzamentos.CruzamentoMain",
-                    "Cr3"
-            ).inheritIO().start();
-            processos.add(cr3Proc);
-            Thread.sleep(1500);
+            String[] cruzamentos = {"Cr1", "Cr2", "Cr3", "Cr4", "Cr5"};
+
+            for (String cruzamento : cruzamentos) {
+                System.out.println("• Iniciando Cruzamento " + cruzamento + "...");
+                Process cruzProc = new ProcessBuilder(
+                        "java", "-cp", CLASSPATH,
+                        "Cruzamentos.CruzamentoMain",
+                        cruzamento
+                ).inheritIO().start();
+                processos.add(cruzProc);
+                Thread.sleep(1500);
+            }
 
             // ======================================
-            // 4. GERADOR DE E3
+            // 4. GERADORES (apenas E3)
             // ======================================
-            System.out.println("• Iniciando Gerador E3...");
-            Process geradorE3Proc = new ProcessBuilder(
+            System.out.println("• Iniciando Geradores (apenas E3 via --only=E3)...");
+            Process geradoresProc = new ProcessBuilder(
                     "java", "-cp", CLASSPATH,
-                    "PontosEntrada.ProcessMainE3"
+                    "PontosEntrada.PontosEntradasMain", "--only=E3"
             ).inheritIO().start();
-            processos.add(geradorE3Proc);
+            processos.add(geradoresProc);
 
             System.out.println("\n=== SISTEMA EM EXECUÇÃO ===");
             System.out.println("Dashboard ativo, veículos a circular...");
-            System.out.println("Pressiona CTRL+C para sair mais cedo.\n");
+            System.out.println("⚠️  O sistema NÃO fecha automaticamente!");
+            System.out.println("📊 Analise os resultados no Dashboard.\n");
 
-            Thread.sleep(30_000); // 30 segundos de teste
+            // ✅ Aguarda que o gerador termine
+            System.out.println("⏳ Aguardando geradores terminarem...");
+            geradoresProc.waitFor();
+            System.out.println("✓ Geradores terminaram de gerar veículos.\n");
+
+            // ✅ Aguarda tempo extra para veículos terminarem visualmente (2 minutos)
+            System.out.println("⏳ Aguardando veículos terminarem de circular (120 segundos)...");
+            Thread.sleep(120_000);
+
+            System.out.println("\n=== PROCESSOS BACKEND TERMINARAM ===");
+            System.out.println("📊 Dashboard permanece aberto para análise.");
+            System.out.println("❌ Feche o Dashboard manualmente quando terminar.\n");
+
+            // ✅ Encerra apenas processos backend (não o Dashboard)
+            encerrarProcessosBackend(processos, dashboardProc);
+
+            // ✅ Mantém main thread viva (Dashboard continua aberto)
+            System.out.println("⌛ Aguardando fechamento manual do Dashboard...\n");
+            dashboardProc.waitFor();
+
+            System.out.println("✓ Dashboard encerrado pelo usuário.");
 
         } catch (Exception e) {
             System.err.println("\nERRO: " + e.getMessage());
@@ -86,8 +104,29 @@ public class Main {
         }
     }
 
+    /**
+     * ✅ NOVO: Encerra apenas processos backend (mantém Dashboard)
+     */
+    private static void encerrarProcessosBackend(List<Process> todos, Process dashboard) {
+        System.out.println("Encerrando processos backend...");
+
+        for (Process p : todos) {
+            if (p != dashboard && p.isAlive()) {
+                p.destroy();
+                try {
+                    p.waitFor();
+                } catch (InterruptedException ignored) {}
+            }
+        }
+
+        System.out.println("✓ Processos backend encerrados.\n");
+    }
+
+    /**
+     * Encerra todos os processos (incluindo Dashboard)
+     */
     private static void encerrarProcessos(List<Process> processos) {
-        System.out.println("\nEncerrando processos...");
+        System.out.println("Encerrando todos os processos restantes...");
 
         for (Process p : processos) {
             if (p.isAlive()) {

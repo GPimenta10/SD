@@ -1,11 +1,12 @@
 package PontosEntrada;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 public class PontosEntradasMain {
 
@@ -24,16 +25,42 @@ public class PontosEntradasMain {
         Gson gson = new Gson();
 
         // ===============================
-        // 1. LER CONFIGURAÇÃO DAS ENTRADAS
+        // 1. LER CONFIGURAÇÃO DAS ENTRADAS (classpath resources)
         // ===============================
-        String jsonEntradas = Files.readString(Paths.get("configEntradas.json"));
+        String jsonEntradas = readResourceAsString("configEntradas.json");
         JsonObject rootEntradas = gson.fromJson(jsonEntradas, JsonObject.class);
         JsonArray entradasJson = rootEntradas.getAsJsonArray("entradas");
 
+        // Opcional: filtrar por entradas passadas em argumento: --only=E3 ou --only=E1,E3
+        java.util.Set<String> onlyIds = null;
+        if (args != null) {
+            for (String a : args) {
+                if (a != null && a.startsWith("--only=")) {
+                    String ids = a.substring("--only=".length());
+                    onlyIds = new java.util.HashSet<>();
+                    for (String id : ids.split(",")) {
+                        if (!id.isBlank()) onlyIds.add(id.trim());
+                    }
+                }
+            }
+        }
+
+        java.util.List<JsonObject> selecionadas = new java.util.ArrayList<>();
+        for (var elem : entradasJson) {
+            JsonObject e = elem.getAsJsonObject();
+            String id = e.get("id").getAsString();
+            if (onlyIds == null || onlyIds.contains(id)) {
+                selecionadas.add(e);
+            }
+        }
+        if (selecionadas.isEmpty()) {
+            throw new IllegalArgumentException("Nenhuma entrada selecionada. Verifique o argumento --only ou o config.");
+        }
+
         // ===============================
-        // 2. LER CONFIGURAÇÃO DAS CARGAS
+        // 2. LER CONFIGURAÇÃO DAS CARGAS (classpath resources)
         // ===============================
-        String jsonCargas = Files.readString(Paths.get("configCargas.json"));
+        String jsonCargas = readResourceAsString("configCargas.json");
         JsonObject rootCargas = gson.fromJson(jsonCargas, JsonObject.class);
         JsonObject carga = rootCargas.getAsJsonObject("cargas").getAsJsonObject(cargaSelecionada);
 
@@ -47,15 +74,14 @@ public class PontosEntradasMain {
         // ===============================
         // 3. DISTRIBUIR ENTRE E1/E2/E3
         // ===============================
-        int nEntradas = entradasJson.size();
+        int nEntradas = selecionadas.size();
         int base = totalVeiculos / nEntradas;
         int resto = totalVeiculos % nEntradas;
 
         GeradorVeiculosLimitado[] geradores = new GeradorVeiculosLimitado[nEntradas];
 
         int idx = 0;
-        for (var elem : entradasJson) {
-            JsonObject e = elem.getAsJsonObject();
+        for (JsonObject e : selecionadas) {
 
             String id = e.get("id").getAsString();
             String host = e.get("cruzamentoHost").getAsString();
@@ -91,5 +117,15 @@ public class PontosEntradasMain {
             g.join();
 
         System.out.println("\nTodos os geradores terminaram.");
+    }
+
+    private static String readResourceAsString(String resourceName) throws IOException {
+        ClassLoader cl = PontosEntradasMain.class.getClassLoader();
+        try (InputStream is = cl.getResourceAsStream(resourceName)) {
+            if (is == null) {
+                throw new IOException("Recurso não encontrado no classpath: " + resourceName);
+            }
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 }

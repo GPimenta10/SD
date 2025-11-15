@@ -162,20 +162,19 @@ public class Cruzamento {
      * @param filaOrigem
      */
     public void enviarVeiculoAposPassarSemaforo(Veiculo veiculo, FilaVeiculos filaOrigem) {
-
-        // Avançar o caminho do veículo
+        // Avançar primeiro: o índice atual representa o cruzamento onde o veículo está.
         veiculo.avancarCaminho();
 
-        String destino = mapaFilaParaDestino.get(filaOrigem);
+        // Agora obter o próximo nó após avançar. Se terminou, getProximoNo() devolve "S".
+        String destino = veiculo.getProximoNo();
 
-        if (destino == null) {
-            System.err.printf("[%s] ERRO: Sem destino para fila!%n", nomeCruzamento);
-            return;
+        // Segurança extra: evitar enviar para o próprio cruzamento.
+        if (destino == null || destino.equals(nomeCruzamento)) {
+            destino = "S";
         }
 
-        // NOTIFICAR DASHBOARD DO MOVIMENTO
+        // Notificar Dashboard e encaminhar.
         notificarDashboardMovimento(veiculo, nomeCruzamento, destino);
-
         enviarVeiculoParaDestino(destino, veiculo);
     }
 
