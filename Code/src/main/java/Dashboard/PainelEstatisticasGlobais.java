@@ -11,7 +11,7 @@ import java.awt.*;
  *
  * 🔧 MELHORIAS: Visual mais claro com cores e fonte maior
  */
-public class PainelEstatisticas extends JPanel {
+public class PainelEstatisticasGlobais extends JPanel {
 
     private JLabel totalGeradoLabel;
     private JLabel e1Label;
@@ -22,44 +22,72 @@ public class PainelEstatisticas extends JPanel {
     private int totalGerado = 0;
     private int e1 = 0, e2 = 0, e3 = 0, saida = 0;
 
-    public PainelEstatisticas() {
-        setLayout(new GridLayout(5, 2, 15, 10));
+    public PainelEstatisticasGlobais() {
+
         setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(Color.DARK_GRAY, 2),
-                "📊 Estatísticas Globais do Sistema",
+                BorderFactory.createLineBorder(new Color(98, 114, 164), 2),
+                "Estatísticas Globais do Sistema",
                 0,
                 0,
                 new Font("Arial", Font.BOLD, 14)
         ));
-        setBackground(new Color(240, 240, 240));
 
-        // 🔧 NOVO: Labels com melhor formatação
-        totalGeradoLabel = criarLabel("Total Gerado: 0", new Color(33, 150, 243));
-        e1Label = criarLabel("E1: 0", new Color(76, 175, 80));
-        e2Label = criarLabel("E2: 0", new Color(255, 152, 0));
-        e3Label = criarLabel("E3: 0", new Color(156, 39, 176));
-        totalSaidaLabel = criarLabel("Total Saída: 0", new Color(244, 67, 54));
+        ((javax.swing.border.TitledBorder) getBorder()).setTitleColor(Color.WHITE);
 
-        add(totalGeradoLabel);
-        add(e1Label);
-        add(e2Label);
-        add(e3Label);
-        add(totalSaidaLabel);
+        setBackground(new Color(40, 42, 54));
+
+        setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.weightx = 1.0;
+
+        // Labels com estilo Dracula
+        totalGeradoLabel = criarLabel("Total Gerado: 0");
+        e1Label = criarLabel("E1: 0");
+        e2Label = criarLabel("E2: 0");
+        e3Label = criarLabel("E3: 0");
+        totalSaidaLabel = criarLabel("Total Saída: 0");
+
+        int row = 0;
+
+        // Linha 1: Total Gerado | E1
+        gbc.gridx = 0; gbc.gridy = row;
+        add(totalGeradoLabel, gbc);
+        gbc.gridx = 1;
+        add(e1Label, gbc);
+
+        // Linha 2: E2 | E3
+        row++;
+        gbc.gridx = 0; gbc.gridy = row;
+        add(e2Label, gbc);
+        gbc.gridx = 1;
+        add(e3Label, gbc);
+
+        // Linha 3: Total Saída (ocupa 2 colunas)
+        row++;
+        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridwidth = 2;
+        add(totalSaidaLabel, gbc);
     }
 
     /**
      * Cria um label com formatação personalizada
      */
-    private JLabel criarLabel(String texto, Color cor) {
+    private JLabel criarLabel(String texto) {
         JLabel label = new JLabel(texto, SwingConstants.CENTER);
-        label.setFont(new Font("Arial", Font.BOLD, 16));
-        label.setForeground(cor);
+
+        label.setFont(new Font("Consolas", Font.BOLD, 12));
+        label.setForeground(new Color(248, 248, 242));   // Branco
         label.setOpaque(true);
-        label.setBackground(Color.WHITE);
+        label.setBackground(new Color(40, 42, 54));      // Dracula background
+
+        // 🔵 Borda azul — igual à tabela
         label.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(cor, 2),
+                BorderFactory.createLineBorder(new Color(98, 114, 164), 2),  // Azul Dracula
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
+
         return label;
     }
 
@@ -83,7 +111,7 @@ public class PainelEstatisticas extends JPanel {
     public synchronized void incrementarSaidas() {
         saida++;
         atualizar();
-        System.out.printf("[PainelEstatisticas] Saídas atualizadas: %d%n", saida);
+        System.out.printf("[PainelEstatisticasGlobais] Saídas atualizadas: %d%n", saida);
     }
 
     /**

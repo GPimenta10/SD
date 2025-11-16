@@ -5,79 +5,92 @@ import java.awt.*;
 
 /**
  * Janela principal do Dashboard.
- * Contém:
- *  - Estatísticas globais (topo) - 10%
- *  - Mapa do sistema (centro) - 70%
- *  - Lista de veículos que saíram (base) - 20%
- *
- * 🔧 CORREÇÃO: Proporções ajustadas para dar mais destaque ao mapa
+ * Layout:
+ *  - Coluna esquerda: Estatísticas globais + espaço vazio
+ *  - Centro: Mapa do sistema
+ *  - Coluna direita: Estatísticas por tipo (topo) + Lista de veículos que saíram (baixo)
+ *  - Base: Logs do sistema
  */
 public class DashboardFrame extends JFrame {
 
-    private PainelEstatisticas painelEstatisticas;
+    private PainelEstatisticasGlobais painelEstatisticasGlobais;
     private PainelMapa painelMapa;
-    private PainelVeiculos painelVeiculos;
+    private PainelEstatisticasSaida painelEstatisticasSaida;
+    private PainelInfoSaidaVeiculos painelInfoSaidaVeiculos;
+    private PainelLogs painelLogs;
 
     public DashboardFrame() {
         super("Dashboard - Sistema de Tráfego Urbano");
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1200, 800);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         setLayout(new BorderLayout(10, 10));
 
-        // === Criação dos painéis já existentes ===
-        painelEstatisticas = new PainelEstatisticas();
+        // === Criação dos painéis ===
+        painelEstatisticasGlobais = new PainelEstatisticasGlobais();
         painelMapa = new PainelMapa();
-        painelVeiculos = new PainelVeiculos();
+        painelEstatisticasSaida = new PainelEstatisticasSaida();
+        painelInfoSaidaVeiculos = new PainelInfoSaidaVeiculos();
+        painelLogs = new PainelLogs();
 
-        // === Novo: Painel de LOGS (simples por agora) ===
-        JPanel painelLogs = new JPanel();
-        painelLogs.setPreferredSize(new Dimension(0, 150));  // altura do bloco
-        painelLogs.setBackground(new Color(230, 230, 230));   // cinza claro
-        painelLogs.setBorder(
-                BorderFactory.createTitledBorder("Eventos Importantes")
-        );
+        painelMapa.setDashboard(this);
+        DashLogger.inicializar(painelLogs);
 
-        // === NOVO: Caixa vazia abaixo das estatísticas ===
+        // === Caixa vazia abaixo das estatísticas globais ===
         JPanel caixaVazia = new JPanel();
-        caixaVazia.setPreferredSize(new Dimension(250, 150));
-        caixaVazia.setBackground(new Color(240, 240, 240));
-        caixaVazia.setBorder(
-                BorderFactory.createTitledBorder(" ")
-        );
+        caixaVazia.setPreferredSize(new Dimension(225, 150));
+        caixaVazia.setBackground(new Color(40, 42, 54));
+        caixaVazia.setBorder(BorderFactory.createTitledBorder(" "));
 
-        // === Wrapper da coluna esquerda (estatísticas + caixa vazia) ===
+        // === Coluna esquerda: Estatísticas globais + caixa vazia ===
         JPanel colunaEsquerda = new JPanel(new BorderLayout());
         colunaEsquerda.setPreferredSize(new Dimension(250, 0));
-
-        colunaEsquerda.add(painelEstatisticas, BorderLayout.NORTH);
+        colunaEsquerda.add(painelEstatisticasGlobais, BorderLayout.NORTH);
         colunaEsquerda.add(caixaVazia, BorderLayout.CENTER);
 
-        // === Tamanhos dos 3 painéis principais ===
-        painelMapa.setPreferredSize(new Dimension(350, 0));
-        painelVeiculos.setPreferredSize(new Dimension(550, 0));
+        // === Coluna direita: Estatísticas por tipo + Lista de veículos ===
+        JPanel colunaDireita = new JPanel(new BorderLayout(5, 5));
+        colunaDireita.setPreferredSize(new Dimension(500, 0));
+        colunaDireita.setBackground(new Color(40, 42, 54));
 
-        // === Adiciona os painéis nos mesmos sítios ===
-        add(colunaEsquerda, BorderLayout.WEST);  // substitui painelEstatisticas direto
+        // Ajusta tamanhos preferenciais
+        painelEstatisticasSaida.setPreferredSize(new Dimension(0, 280));
+        painelInfoSaidaVeiculos.setPreferredSize(new Dimension(0, 300));
+
+        colunaDireita.add(painelEstatisticasSaida, BorderLayout.NORTH);
+        colunaDireita.add(painelInfoSaidaVeiculos, BorderLayout.CENTER);
+
+        // === Configura dimensões dos outros painéis ===
+        painelMapa.setPreferredSize(new Dimension(700, 0));
+        painelLogs.setPreferredSize(new Dimension(0, 250));
+
+        // === Adiciona os painéis ao frame ===
+        add(colunaEsquerda, BorderLayout.WEST);
         add(painelMapa, BorderLayout.CENTER);
-        add(painelVeiculos, BorderLayout.EAST);
-
-        // === Adiciona o painel de logs por baixo ===
+        add(colunaDireita, BorderLayout.EAST);
         add(painelLogs, BorderLayout.SOUTH);
 
         setLocationRelativeTo(null);
         setVisible(true);
     }
 
-    public PainelEstatisticas getPainelEstatisticas() {
-        return painelEstatisticas;
+    public PainelEstatisticasGlobais getPainelEstatisticas() {
+        return painelEstatisticasGlobais;
     }
 
     public PainelMapa getPainelMapa() {
         return painelMapa;
     }
 
-    public PainelVeiculos getPainelVeiculos() {
-        return painelVeiculos;
+    public PainelEstatisticasSaida getPainelEstatisticasTipo() {
+        return painelEstatisticasSaida;
+    }
+
+    public PainelInfoSaidaVeiculos getPainelVeiculos() {
+        return painelInfoSaidaVeiculos;
+    }
+
+    public PainelLogs getPainelLogs() {
+        return painelLogs;
     }
 }

@@ -1,9 +1,10 @@
 package PontosEntrada;
 
+import Dashboard.TipoLog;
 import Rede.Mensagem;
+import Utils.EnviarLogs;
 import Veiculo.TipoVeiculo;
 import Veiculo.Veiculo;
-import com.google.gson.Gson;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -12,12 +13,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Classe responsável por gerar veículos num ponto de entrada
- * e enviá-los diretamente ao primeiro cruzamento do seu caminho.
- *
- * ATUALIZADO: Notifica Dashboard do movimento do veículo
+ * Gerador de veículos com limite máximo.
+ * Para automaticamente após gerar o número especificado de veículos.
  */
 public class GeradorVeiculos extends Thread {
 
@@ -25,67 +25,102 @@ public class GeradorVeiculos extends Thread {
     private final String ipPrimeiroCruzamento;
     private final int portaPrimeiroCruzamento;
     private final long intervaloGeracaoMs;
+    private final int limiteVeiculos;
 
-    private final Gson gson = new Gson();
+    private final com.google.gson.Gson gson = new com.google.gson.Gson();
     private volatile boolean ativo = true;
 
-    private static long contadorIds = 0;
+    private final AtomicInteger contadorGerados = new AtomicInteger(0);
+    private static final AtomicInteger contadorIdsGlobal = new AtomicInteger(0);
 
-    public GeradorVeiculos(PontoEntrada pontoEntrada, String ipPrimeiroCruzamento,
-                           int portaPrimeiroCruzamento, long intervaloGeracaoMs) {
+    public GeradorVeiculos(PontoEntrada pontoEntrada, String ipPrimeiroCruzamento, int portaPrimeiroCruzamento, long intervaloGeracaoMs,
+                           int limiteVeiculos) {
         super("Gerador-" + pontoEntrada.name());
         this.pontoEntrada = pontoEntrada;
         this.ipPrimeiroCruzamento = ipPrimeiroCruzamento;
         this.portaPrimeiroCruzamento = portaPrimeiroCruzamento;
         this.intervaloGeracaoMs = intervaloGeracaoMs;
-        setDaemon(true);
+        this.limiteVeiculos = limiteVeiculos;
+        setDaemon(false);
+    }
+
+    public int getTotalGerado() {
+        return contadorGerados.get();
+    }
+
+    public void parar() {
+        ativo = false;
+        interrupt();
     }
 
     @Override
     public void run() {
-        System.out.printf("[%s] Iniciado - geração a cada %d ms%n",
-                pontoEntrada.name(), intervaloGeracaoMs);
+        EnviarLogs.definirNomeProcesso(pontoEntrada.toString());
+        EnviarLogs.enviar(TipoLog.SISTEMA, "Gerador " + pontoEntrada.name() + " iniciado. Vai gerar " + limiteVeiculos + " veículos.");
 
         try {
-            while (ativo) {
+            while (ativo && contadorGerados.get() < limiteVeiculos) {
+                // Criar veículo
                 Veiculo veiculo = gerarVeiculo();
 
-                // Determina o primeiro cruzamento do caminho
+                // Determinar o primeiro cruzamento
                 String primeiroCruzamento = veiculo.getCaminho().isEmpty() ? "S" : veiculo.getCaminho().get(0);
 
-                // Notifica Dashboard do movimento
-                notificarMovimento(veiculo.getId(), veiculo.getTipo().name(),
-                        pontoEntrada.name(), primeiroCruzamento);
+                // Notificar Dashboard do movimento inicial
+                notificarMovimento(
+                        veiculo.getId(),
+                        veiculo.getTipo().name(),
+                        pontoEntrada.name(),
+                        primeiroCruzamento
+                );
 
-                // Envia veículo ao cruzamento
+                // Enviar veículo ao cruzamento
                 enviarVeiculo(veiculo);
 
-                // Notifica geração
+                // Enviar sinal de geração
                 notificarDashboard();
 
-                System.out.printf("[%s] Gerado e enviado veículo %s (%s) - Caminho: %s%n",
-                        pontoEntrada.name(),
-                        veiculo.getId(),
-                        veiculo.getTipo(),
-                        veiculo.getCaminho());
+                // Incrementar contador
+                int totalGerado = contadorGerados.incrementAndGet();
+
+                // Debug comentado
+                /*
+                System.out.printf("[%s] Veículo %d/%d gerado: %s (%s)%n",
+                        pontoEntrada.name(), totalGerado, limiteVeiculos,
+                        veiculo.getId(), veiculo.getTipo());
+                */
+
+                if (totalGerado >= limiteVeiculos) {
+                    break;
+                }
 
                 Thread.sleep(intervaloGeracaoMs);
             }
+
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            System.out.printf("[%s] Interrompido.%n", pontoEntrada.name());
+            // Debug comentado:
+            // System.out.printf("[%s] Interrompido.%n", pontoEntrada.name());
         }
+
+        EnviarLogs.enviar(TipoLog.SUCESSO, "Gerador " + pontoEntrada.name() + " terminou (" +
+                contadorGerados.get() + " veículos criados).");
     }
 
     private Veiculo gerarVeiculo() {
         double p = ThreadLocalRandom.current().nextDouble();
         TipoVeiculo tipo;
 
-        if (p < 0.4) tipo = TipoVeiculo.CARRO;
-        else if (p < 0.8) tipo = TipoVeiculo.MOTA;
-        else tipo = TipoVeiculo.CAMIAO;
+        if (p < 0.4) {
+            tipo = TipoVeiculo.CARRO;
+        } else if (p < 0.8) {
+            tipo = TipoVeiculo.MOTA;
+        } else {
+            tipo = TipoVeiculo.CAMIAO;
+        }
 
-        String id = String.format("%s-%03d", pontoEntrada.name(), ++contadorIds);
+        String id = String.format("%s-%03d", pontoEntrada.name(), contadorIdsGlobal.incrementAndGet());
+
         List<String> caminho = Caminhos.gerarCaminho(pontoEntrada);
 
         return new Veiculo(id, tipo, pontoEntrada, caminho);
@@ -106,14 +141,11 @@ public class GeradorVeiculos extends Thread {
             out.println(json);
 
         } catch (IOException e) {
-            System.err.printf("[%s] Erro ao enviar veículo %s: %s%n",
-                    pontoEntrada.name(), veiculo.getId(), e.getMessage());
+            EnviarLogs.enviar(TipoLog.AVISO, "Falha ao enviar veículo " + veiculo.getId() +
+                    " a partir de " + pontoEntrada.name() + ": " + e.getMessage());
         }
     }
 
-    /**
-     * Notifica o Dashboard que um veículo foi gerado
-     */
     private void notificarDashboard() {
         try (Socket socket = new Socket("localhost", 6000);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
@@ -127,15 +159,10 @@ public class GeradorVeiculos extends Thread {
 
             out.println(gson.toJson(msg));
 
-        } catch (IOException e) {
-            System.err.printf("[%s] Falha ao notificar Dashboard: %s%n",
-                    pontoEntrada.name(), e.getMessage());
+        } catch (IOException ignored) {
         }
     }
 
-    /**
-     * NOVO: Notifica o Dashboard do movimento do veículo no mapa
-     */
     private void notificarMovimento(String idVeiculo, String tipo, String origem, String destino) {
         try (Socket socket = new Socket("localhost", 6000);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
@@ -155,14 +182,7 @@ public class GeradorVeiculos extends Thread {
 
             out.println(gson.toJson(msg));
 
-        } catch (IOException e) {
-            System.err.printf("[%s] Falha ao notificar movimento: %s%n",
-                    pontoEntrada.name(), e.getMessage());
+        } catch (IOException ignored) {
         }
-    }
-
-    public void parar() {
-        ativo = false;
-        interrupt();
     }
 }

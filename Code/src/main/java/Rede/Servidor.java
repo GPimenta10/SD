@@ -18,30 +18,22 @@ public class Servidor implements Runnable {
     @Override
     public void run() {
         try (ServerSocket serverSocket = new ServerSocket(porta)) {
-            System.out.println("[Servidor] À escuta na porta " + porta + "...");
-
             while (ativo) {
-                Socket socket = serverSocket.accept(); // Espera um cliente
-                new Thread(() -> tratarConexao(socket)).start(); // Trata cada cliente numa thread separada
+                Socket socket = serverSocket.accept();
+                new Thread(() -> tratarConexao(socket)).start();
             }
-
         } catch (IOException e) {
             System.err.println("[Servidor] Erro: " + e.getMessage());
         }
     }
 
     private void tratarConexao(Socket socket) {
-        try (BufferedReader in = new BufferedReader(
-                new InputStreamReader(socket.getInputStream()))) {
-
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
             String json;
             while ((json = in.readLine()) != null) {
                 Mensagem msg = Mensagem.fromJson(json);
                 System.out.println("[Servidor] Recebida: " + msg);
-                // Aqui depois podes processar a mensagem conforme o tipo
-                // Ex: if (msg.getTipo().equals("VEICULO")) { ... }
             }
-
         } catch (IOException e) {
             System.err.println("[Servidor] Erro ao ler mensagem: " + e.getMessage());
         }

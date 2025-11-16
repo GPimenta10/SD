@@ -1,5 +1,8 @@
 package Cruzamentos;
 
+
+import Dashboard.TipoLog;
+import Utils.EnviarLogs;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -10,58 +13,58 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Processo genérico para iniciar UM cruzamento específico.
+ * Processo genérico para iniciar um cruzamento específico.
  *
- * USO: java Cruzamentos.CruzamentoMain <nomeCruzamento>
- * Exemplo: java Cruzamentos.CruzamentoMain Cr3
- *
- * Este processo:
- * 1. Recebe o nome do cruzamento como argumento
- * 2. Lê o configCruzamentos.json
- * 3. Filtra apenas a configuração do cruzamento especificado
- * 4. Cria e inicia APENAS esse cruzamento
- * 5. Mantém o processo ativo
-*/
+ * Fluxo:
+ * 1. Recebe o nome do cruzamento por argumento
+ * 2. Lê configCruzamentos.json
+ * 3. Carrega apenas esse cruzamento
+ * 4. Inicia o cruzamento
+ * 5. Mantém processo ativo
+ */
 public class CruzamentoMain {
 
     public static void main(String[] args) {
 
-        // === VALIDAÇÃO DE ARGUMENTOS ===
+        // VALIDAÇÃO DE ARGUMENTOS
         if (args.length < 1) {
-            System.err.println("ERRO: Nome do cruzamento não especificado!");
+            /*System.err.println("ERRO: Nome do cruzamento não especificado!");
             System.err.println("USO: java Cruzamentos.CruzamentoMain <nomeCruzamento>");
-            System.err.println("Exemplo: java Cruzamentos.CruzamentoMain Cr3");
+            System.err.println("Exemplo: java Cruzamentos.CruzamentoMain Cr3");*/
+
+            EnviarLogs.enviar(TipoLog.ERRO, "CruzamentoMain iniciado sem argumentos");
             System.exit(1);
         }
 
         String nomeCruzamento = args[0];
-
-        System.out.println("=".repeat(60));
-        System.out.println("PROCESSO: Cruzamento " + nomeCruzamento);
-        System.out.println("=".repeat(60));
+        EnviarLogs.definirNomeProcesso(nomeCruzamento);
+        EnviarLogs.enviar(TipoLog.SISTEMA, "Processo Cruzamento " + nomeCruzamento + " iniciado");
 
         try {
-            // === LER CONFIGURAÇÃO DO JSON ===
+            //LER CONFIGURAÇÃO DO JSON
             InputStream in = CruzamentoMain.class.getResourceAsStream("/configCruzamentos.json");
 
             if (in == null) {
-                System.err.println("[CruzamentoMain] ERRO: Ficheiro configCruzamentos.json não encontrado!");
+                System.err.println("[CruzamentoMain] ERRO: configCruzamentos.json não encontrado!");
+                EnviarLogs.enviar(TipoLog.ERRO, "Ficheiro configCruzamentos.json não encontrado!");
                 System.exit(1);
             }
 
             InputStreamReader reader = new InputStreamReader(in);
+
             Gson gson = new Gson();
             Type tipoConfig = new TypeToken<Map<String, List<Map<String, Object>>>>() {}.getType();
-            Map<String, List<Map<String, Object>>> config = gson.fromJson(reader, tipoConfig);
 
+            Map<String, List<Map<String, Object>>> config = gson.fromJson(reader, tipoConfig);
             List<Map<String, Object>> cruzamentos = config.get("cruzamentos");
 
             if (cruzamentos == null || cruzamentos.isEmpty()) {
-                System.err.println("[CruzamentoMain] ERRO: Nenhum cruzamento encontrado no configCruzamentos.json!");
+                System.err.println("[CruzamentoMain] ERRO: Nenhum cruzamento encontrado no JSON!");
+                EnviarLogs.enviar(TipoLog.ERRO, "Nenhum cruzamento encontrado no configCruzamentos.json");
                 System.exit(1);
             }
 
-            // === PROCURAR A CONFIGURAÇÃO DO CRUZAMENTO ESPECIFICADO ===
+            //PROCURAR A CONFIGURAÇÃO DO CRUZAMENTO
             Map<String, Object> configCruzamento = null;
 
             for (Map<String, Object> c : cruzamentos) {
@@ -73,35 +76,35 @@ public class CruzamentoMain {
             }
 
             if (configCruzamento == null) {
-                System.err.printf("[CruzamentoMain] ERRO: Cruzamento '%s' não encontrado no configCruzamentos.json!%n",
-                        nomeCruzamento);
-                System.err.println("[CruzamentoMain] Cruzamentos disponíveis:");
-                for (Map<String, Object> c : cruzamentos) {
-                    System.err.println("  - " + c.get("nome"));
-                }
+                System.err.printf("[CruzamentoMain] Cruzamento '%s' não encontrado!%n", nomeCruzamento);
+                EnviarLogs.enviar(TipoLog.ERRO, "Cruzamento '" + nomeCruzamento + "' não existe no JSON");
+
+                // (debug futuro)
+                // System.err.println("[CruzamentoMain] Lista disponível:");
+                // for (Map<String, Object> c : cruzamentos)
+                //     System.err.println("  - " + c.get("nome"));
+
                 System.exit(1);
             }
 
-            // === EXTRAIR PARÂMETROS DA CONFIGURAÇÃO ===
+            //EXTRAIR PARÂMETROS
             String nome = (String) configCruzamento.get("nome");
             int portaServidor = ((Number) configCruzamento.get("portaServidor")).intValue();
             String ipDashboard = (String) configCruzamento.get("ipDashboard");
             int portaDashboard = ((Number) configCruzamento.get("portaDashboard")).intValue();
 
-            System.out.printf("[CruzamentoMain] Configuração carregada:%n");
-            System.out.printf("  - Nome: %s%n", nome);
-            System.out.printf("  - Porta Servidor: %d%n", portaServidor);
-            System.out.printf("  - Dashboard: %s:%d%n", ipDashboard, portaDashboard);
+            EnviarLogs.enviar(TipoLog.SISTEMA, "Configuração carregada para " + nome + ": servidor=" + portaServidor +
+                            ", dashboard=" + ipDashboard + ":" + portaDashboard);
 
-            // === CRIAR O CRUZAMENTO ===
+            //CRIAR O CRUZAMENTO
             Cruzamento cruzamento = new Cruzamento(nome, portaServidor, ipDashboard, portaDashboard);
 
-            // === ADICIONAR LIGAÇÕES ===
+            //ADICIONAR LIGAÇÕES
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> ligacoes = (List<Map<String, Object>>) configCruzamento.get("ligacoes");
 
             if (ligacoes != null && !ligacoes.isEmpty()) {
-                System.out.printf("[CruzamentoMain] Adicionando %d ligações...%n", ligacoes.size());
+                EnviarLogs.enviar(TipoLog.SISTEMA, "Cruzamento " + nome + " — " + ligacoes.size() + " ligações carregadas");
 
                 for (Map<String, Object> lig : ligacoes) {
                     String origem = (String) lig.get("origem");
@@ -110,33 +113,32 @@ public class CruzamentoMain {
                     int porta = ((Number) lig.get("porta")).intValue();
 
                     cruzamento.adicionarLigacao(origem, destino, ip, porta);
-                    System.out.printf("  ✓ %s -> %s (%s:%d)%n", origem, destino, ip, porta);
+
+                    // (debug futuro)
+                    // System.out.printf("  ✓ %s -> %s (%s:%d)%n", origem, destino, ip, porta);
                 }
             } else {
-                System.out.println("[CruzamentoMain] AVISO: Nenhuma ligação configurada!");
+                EnviarLogs.enviar(TipoLog.AVISO, "Cruzamento " + nome + " não tem ligações definidas");
             }
 
-            // === INICIAR O CRUZAMENTO ===
-            System.out.println();
+            //INICIAR CRUZAMENTO
             cruzamento.iniciar();
-            System.out.printf("[CruzamentoMain] Cruzamento %s ativo e operacional!%n", nome);
-            System.out.println("=".repeat(60));
+            EnviarLogs.enviar(TipoLog.SISTEMA, "Cruzamento " + nome + " ativo e operacional");
 
-            // === SHUTDOWN HOOK ===
+            // SHUTDOWN HOOK
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                System.out.println();
-                System.out.printf("[CruzamentoMain] Encerrando cruzamento %s...%n", nome);
+                EnviarLogs.enviar(TipoLog.SISTEMA, "A encerrar cruzamento " + nome);
                 cruzamento.parar();
-                System.out.printf("[CruzamentoMain] Cruzamento %s encerrado com sucesso.%n", nome);
+                EnviarLogs.enviar(TipoLog.SISTEMA, "Cruzamento " + nome + " encerrado");
             }));
 
-            // === MANTER PROCESSO ATIVO ===
+            // MANTER PROCESSO ATIVO
             while (true) {
                 Thread.sleep(1000);
             }
-
         } catch (Exception e) {
             System.err.println("[CruzamentoMain] ERRO FATAL: " + e.getMessage());
+            EnviarLogs.enviar(TipoLog.ERRO, "Erro fatal: " + e.getMessage());
             e.printStackTrace();
             System.exit(1);
         }

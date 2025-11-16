@@ -1,5 +1,9 @@
 package Cruzamentos;
 
+import Utils.EnviarLogs;
+import Veiculo.Veiculo;
+import Dashboard.TipoLog;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -10,35 +14,32 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 
-import Veiculo.Veiculo;
-
 /**
  * Classe Cruzamento responsável por:
- *  - Criar e gerir filas de veículos
- *  - Criar semáforos associados a cada fila
- *  - Enviar veículos para outros cruzamentos via TCP
+ *  - Criar e gerir filas de veículos (uma por origem)
+ *  - Controlar os semáforos associados a cada fila
  *  - Receber veículos de outros cruzamentos
- *  - Comunicar periodicamente com o Dashboard (opcional)
+ *  - Enviar veículos para o cruzamento seguinte ou para a saída via TCP
+ *  - Comunicar periodicamente o seu estado ao Dashboard
  *
- *  NOTA IMPORTANTE:
- *  Os semáforos são simples: apenas retiram veículos da fila.
- *  Quem envia os veículos via socket é o Cruzamento.
+ * Nota:
+ *   Os semáforos apenas retiram veículos da fila associada.
+ *   O envio entre cruzamentos é sempre feito pelo Cruzamento.
  */
 public class Cruzamento {
-
     private final String nomeCruzamento;
 
     // Comunicação entre cruzamentos
     private final int portaServidor;
-    private final Map<String, ThreadCliente> mapaDestinoParaCliente = new HashMap<>();
-    private ThreadServidor threadServidor;
+    private final Map<String, ClienteCruzamento> mapaDestinoParaCliente = new HashMap<>();
+    private ServidorCruzamento servidorCruzamento;
 
-    // Dashboard (opcional)
+    // Dashboard
     private final String ipDashboard;
     private final int portaDashboard;
-    private ThreadDashboardCliente threadDashboardCliente;
+    private ClienteCruzamentoDashboard clienteCruzamentoDashboard;
 
-    // Fila → Destino e Origem → Fila
+    // Filas
     private final Map<String, FilaVeiculos> mapaOrigemParaFila = new HashMap<>();
     private final Map<FilaVeiculos, String> mapaFilaParaDestino = new HashMap<>();
 
@@ -48,57 +49,63 @@ public class Cruzamento {
 
     private final Gson gson = new Gson();
 
+    /**
+     * Construtor do cruzamento.
+     *
+     * @param nomeCruzamento Nome do cruzamento
+     * @param portaServidor Porta para receber veículos
+     * @param ipDashboard IP do Dashboard
+     * @param portaDashboard Porta do Dashboard
+     */
     public Cruzamento(String nomeCruzamento, int portaServidor, String ipDashboard, int portaDashboard) {
         this.nomeCruzamento = nomeCruzamento;
         this.portaServidor = portaServidor;
-
         this.ipDashboard = ipDashboard;
         this.portaDashboard = portaDashboard;
     }
 
+    /**
+     * Obtém o nome do cruzamento.
+     *
+     * @return Nome do cruzamento
+     */
     public String getNomeCruzamento() {
         return nomeCruzamento;
     }
 
     /**
-     * Define uma ligação ao cruzamento seguinte.
+     * Define uma ligação entre uma origem deste cruzamento e um cruzamento seguinte.
      *
-     * @param origem        Nome da entrada deste cruzamento
-     * @param destino       Nome do cruzamento seguinte
-     * @param ipDestino     Endereço IP do cruzamento seguinte
-     * @param portaDestino  Porta TCP do cruzamento seguinte
+     * @param origem Nome da origem
+     * @param destino Nome do próximo cruzamento
+     * @param ipDestino IP do cruzamento destino
+     * @param portaDestino Porta TCP do cruzamento destino
      */
     public void adicionarLigacao(String origem, String destino, String ipDestino, int portaDestino) {
+        EnviarLogs.enviar(TipoLog.SISTEMA, String.format("[%s] Configurar ligação: %s → %s", nomeCruzamento, origem, destino));
 
-        System.out.printf("[%s] Configurar ligação: %s → %s%n",
-                nomeCruzamento, origem, destino);
-
-        // Cria fila para esta origem
+        // Criar a fila associada à origem
         FilaVeiculos fila = new FilaVeiculos();
         mapaOrigemParaFila.put(origem, fila);
         mapaFilaParaDestino.put(fila, destino);
 
-        // Apenas 1 cliente TCP por destino
+        // Criar cliente TCP apenas uma vez por destino
         if (!mapaDestinoParaCliente.containsKey(destino)) {
-            ThreadCliente cliente = new ThreadCliente(nomeCruzamento, destino, ipDestino, portaDestino);
+            ClienteCruzamento cliente = new ClienteCruzamento(nomeCruzamento, destino, ipDestino, portaDestino);
             mapaDestinoParaCliente.put(destino, cliente);
         }
     }
 
     /**
-     *
-     *
+     * Inicializa o cruzamento, os semáforos e os clientes/servidores TCP.
      */
     public void iniciar() {
+        EnviarLogs.enviar(TipoLog.CRUZAMENTO, "A iniciar o cruzamento " + nomeCruzamento);
 
-        System.out.println("=".repeat(60));
-        System.out.printf(">>> INICIAR CRUZAMENTO %s%n", nomeCruzamento);
-        System.out.println("=".repeat(60));
-
-        // Criar monitor para os semáforos
+        // Criar monitor dos semáforos
         monitorSemaforos = new MonitorSemaforos(mapaOrigemParaFila.size());
 
-        // Criar Semáforos
+        // Criar semáforos
         int idSemaforo = 0;
         for (Map.Entry<String, FilaVeiculos> entry : mapaOrigemParaFila.entrySet()) {
 
@@ -109,109 +116,95 @@ public class Cruzamento {
                     idSemaforo,
                     origem,
                     monitorSemaforos,
-                    3000,                 // tempo de verde
-                    filaVeiculos,         // fila associada
-                    this                  // referência ao cruzamento
+                    5000,
+                    filaVeiculos,
+                    this
             );
 
             listaSemaforos.add(semaforo);
             idSemaforo++;
         }
 
-        // Iniciar servidor TCP
-        threadServidor = new ThreadServidor(portaServidor, this);
-        threadServidor.start();
+        // Arrancar servidor TCP
+        servidorCruzamento = new ServidorCruzamento(portaServidor, this);
+        servidorCruzamento.start();
 
-        // Iniciar clientes TCP
-        for (ThreadCliente cliente : mapaDestinoParaCliente.values()) {
+        // Arrancar clientes TCP
+        for (ClienteCruzamento cliente : mapaDestinoParaCliente.values()) {
             cliente.start();
         }
 
-        // Iniciar Dashboard (opcional)
-        threadDashboardCliente = new ThreadDashboardCliente(ipDashboard, portaDashboard, this);
-        threadDashboardCliente.start();
+        // Cliente do Dashboard
+        clienteCruzamentoDashboard = new ClienteCruzamentoDashboard(ipDashboard, portaDashboard, this);
+        clienteCruzamentoDashboard.start();
 
-        // Iniciar semáforos
+        // Arrancar semáforos
         for (Semaforo semaforo : listaSemaforos) {
             semaforo.start();
         }
     }
 
     /**
+     * Recebe um veículo proveniente de outro cruzamento.
      *
-     *
-     * @param veiculo
-     * @param origem
+     * @param veiculo Veículo recebido
+     * @param origem Origem do envio
      */
     public void receberVeiculo(Veiculo veiculo, String origem) {
         FilaVeiculos filaVeiculos = mapaOrigemParaFila.get(origem);
 
         if (filaVeiculos == null) {
-            System.err.printf("[%s] ERRO: Origem '%s' desconhecida%n", nomeCruzamento, origem);
+            EnviarLogs.enviar(TipoLog.ERRO, String.format("[%s] ERRO: Origem '%s' desconhecida", nomeCruzamento, origem));
             return;
         }
 
         filaVeiculos.adicionar(veiculo);
-        System.out.printf("[%s] Recebido veículo %s → fila %s%n", nomeCruzamento, veiculo.getId(), origem);
+        EnviarLogs.enviar(TipoLog.SISTEMA, String.format("[%s] Recebido veículo %s → fila %s", nomeCruzamento, veiculo.getId(), origem));
     }
 
     /**
-     * Chamado pelo Semáforo quando um veículo sai da fila
+     * Chamado pelo Semáforo quando um veículo atravessa o cruzamento.
      *
-     * @param veiculo
-     * @param filaOrigem
+     * @param veiculo Veículo que saiu da fila
+     * @param filaOrigem Fila correspondente
      */
     public void enviarVeiculoAposPassarSemaforo(Veiculo veiculo, FilaVeiculos filaOrigem) {
-        // Avançar primeiro: o índice atual representa o cruzamento onde o veículo está.
+        // Avançar um passo no caminho
         veiculo.avancarCaminho();
 
-        // Agora obter o próximo nó após avançar. Se terminou, getProximoNo() devolve "S".
+        // Obter próximo destino (ou "S" se for saída)
         String destino = veiculo.getProximoNo();
 
-        // Segurança extra: evitar enviar para o próprio cruzamento.
         if (destino == null || destino.equals(nomeCruzamento)) {
             destino = "S";
         }
 
-        // Notificar Dashboard e encaminhar.
         notificarDashboardMovimento(veiculo, nomeCruzamento, destino);
         enviarVeiculoParaDestino(destino, veiculo);
     }
 
     /**
-     *
-     *
-     * @param destino
-     * @param veiculo
+     * Envia um veículo para um cruzamento destino.
      */
     private void enviarVeiculoParaDestino(String destino, Veiculo veiculo) {
-
-        ThreadCliente cliente = mapaDestinoParaCliente.get(destino);
+        ClienteCruzamento cliente = mapaDestinoParaCliente.get(destino);
 
         if (cliente == null) {
-            System.err.printf("[%s] ERRO: Cliente TCP para '%s' não existe%n",
-                    nomeCruzamento, destino);
+            EnviarLogs.enviar(TipoLog.ERRO, String.format("[%s] ERRO: Cliente TCP para '%s' não existe",
+                            nomeCruzamento, destino));
             return;
         }
 
-        System.out.printf("[%s] Enviar veículo %s → %s%n",
-                nomeCruzamento, veiculo.getId(), destino);
-
+        EnviarLogs.enviar(TipoLog.SISTEMA, String.format("[%s] Enviar veículo %s → %s", nomeCruzamento, veiculo.getId(), destino));
         cliente.enviarVeiculo(veiculo, nomeCruzamento);
     }
 
-//ADICIONADO -------------------------------------------------------------------------------
     /**
-     * NOVO: Notifica o Dashboard sobre o movimento de um veículo.
-     *
-     * @param veiculo O veículo que se moveu.
-     * @param origem  O ponto de partida do movimento (este cruzamento).
-     * @param destino O próximo ponto no caminho do veículo.
+     * Notifica o Dashboard acerca do movimento de um veículo.
      */
     private void notificarDashboardMovimento(Veiculo veiculo, String origem, String destino) {
-        // Usa o IP e a Porta do Dashboard configurados para este cruzamento
         try (Socket socket = new Socket(ipDashboard, portaDashboard);
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
             Map<String, Object> conteudo = new HashMap<>();
             conteudo.put("id", veiculo.getId());
@@ -219,7 +212,6 @@ public class Cruzamento {
             conteudo.put("origem", origem);
             conteudo.put("destino", destino);
 
-            // O tipo da mensagem é o mesmo que o gerador usa
             Map<String, Object> mensagem = new HashMap<>();
             mensagem.put("tipo", "VEICULO_MOVIMENTO");
             mensagem.put("remetente", origem);
@@ -227,28 +219,29 @@ public class Cruzamento {
             mensagem.put("conteudo", conteudo);
 
             out.println(gson.toJson(mensagem));
-
         } catch (IOException e) {
-            System.err.printf("[%s] Falha ao notificar Dashboard sobre movimento: %s%n", nomeCruzamento, e.getMessage());
+            EnviarLogs.enviar(TipoLog.ERRO, String.format("[%s] Falha ao notificar Dashboard: %s",
+                            nomeCruzamento, e.getMessage()));
         }
     }
 
     /**
-     * Gera um mapa com as estatísticas do cruzamento para o Dashboard.
+     * Constrói o mapa de estatísticas enviado ao Dashboard.
      *
-     * @return Um mapa contendo o estado do cruzamento e dos seus semáforos.
+     * @return Mapa com o estado deste cruzamento
      */
     public Map<String, Object> gerarEstatisticas() {
         List<Map<String, Object>> listaInfo = new ArrayList<>();
 
         for (Semaforo semaforo : listaSemaforos) {
             Map<String, Object> info = new HashMap<>();
+
             info.put("id", semaforo.getIdSemaforo());
             info.put("estado", semaforo.isVerde() ? "VERDE" : "VERMELHO");
             info.put("tamanhoFila", semaforo.getTamanhoFila());
             info.put("origem", semaforo.getOrigem());
-            // ✓ CORREÇÃO: destino deve ser o próprio cruzamento, não o destino final
-            info.put("destino", nomeCruzamento); // ← MUDA ISTO
+            info.put("destino", nomeCruzamento);
+
             listaInfo.add(info);
         }
 
@@ -261,25 +254,23 @@ public class Cruzamento {
 
 
     /**
-     *
-     *
+     * Encerra todos os componentes do cruzamento.
      */
     public void parar() {
-
         for (Semaforo semaforo : listaSemaforos) {
             semaforo.pararSemaforo();
         }
 
-        for (ThreadCliente cliente : mapaDestinoParaCliente.values()) {
+        for (ClienteCruzamento cliente : mapaDestinoParaCliente.values()) {
             cliente.parar();
         }
 
-        if (threadServidor != null) {
-            threadServidor.pararServidor();
+        if (servidorCruzamento != null) {
+            servidorCruzamento.pararServidor();
         }
 
-        if (threadDashboardCliente != null) {
-            threadDashboardCliente.parar();
+        if (clienteCruzamentoDashboard != null) {
+            clienteCruzamentoDashboard.parar();
         }
     }
 }

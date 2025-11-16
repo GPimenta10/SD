@@ -1,44 +1,37 @@
 package PontosEntrada;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+import Dashboard.TipoLog;
+import Utils.EnviarLogs;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+
 public class PontosEntradasMain {
 
     public static void main(String[] args) throws Exception {
 
-        // ==============================================
-        // ESCOLHA DO CENÁRIO (trocar aqui por agora)
-        // ==============================================
+        // Por agora cenário fixo
         String cargaSelecionada = "BAIXA";
-        // BAIXA, MEDIA ou ALTA - Futuramente será um menu
-
-        System.out.println("=".repeat(60));
-        System.out.println("SISTEMA DE GERADORES DE ENTRADA");
-        System.out.println("=".repeat(60));
 
         Gson gson = new Gson();
 
-        // ===============================
-        // 1. LER CONFIGURAÇÃO DAS ENTRADAS (classpath resources)
-        // ===============================
+        // 1. LER CONFIGURAÇÃO DAS ENTRADAS
         String jsonEntradas = readResourceAsString("configEntradas.json");
         JsonObject rootEntradas = gson.fromJson(jsonEntradas, JsonObject.class);
         JsonArray entradasJson = rootEntradas.getAsJsonArray("entradas");
 
-        // Opcional: filtrar por entradas passadas em argumento: --only=E3 ou --only=E1,E3
+        // Filtrar por argumento (--only)
         java.util.Set<String> onlyIds = null;
         if (args != null) {
             for (String a : args) {
                 if (a != null && a.startsWith("--only=")) {
-                    String ids = a.substring("--only=".length());
                     onlyIds = new java.util.HashSet<>();
-                    for (String id : ids.split(",")) {
+                    for (String id : a.substring("--only=".length()).split(",")) {
                         if (!id.isBlank()) onlyIds.add(id.trim());
                     }
                 }
@@ -53,13 +46,13 @@ public class PontosEntradasMain {
                 selecionadas.add(e);
             }
         }
+
         if (selecionadas.isEmpty()) {
-            throw new IllegalArgumentException("Nenhuma entrada selecionada. Verifique o argumento --only ou o config.");
+            EnviarLogs.enviar(TipoLog.ERRO, "Nenhuma entrada selecionada. Verifique o argumento --only ou o ficheiro config.");
+            throw new IllegalArgumentException("Nenhuma entrada selecionada.");
         }
 
-        // ===============================
-        // 2. LER CONFIGURAÇÃO DAS CARGAS (classpath resources)
-        // ===============================
+        // 2. LER CONFIGURAÇÃO DAS CARGAS
         String jsonCargas = readResourceAsString("configCargas.json");
         JsonObject rootCargas = gson.fromJson(jsonCargas, JsonObject.class);
         JsonObject carga = rootCargas.getAsJsonObject("cargas").getAsJsonObject(cargaSelecionada);
@@ -67,63 +60,56 @@ public class PontosEntradasMain {
         int totalVeiculos = carga.get("totalVeiculos").getAsInt();
         long intervaloMs = carga.get("intervaloMs").getAsLong();
 
-        System.out.printf("Cenário selecionado: %s%n", cargaSelecionada);
-        System.out.printf("Total global de veículos: %d%n", totalVeiculos);
-        System.out.printf("Intervalo entre veículos: %d ms%n%n", intervaloMs);
+        // Log importante → cenário escolhido
+        EnviarLogs.enviar(TipoLog.SISTEMA, "Geradores: cenário " + cargaSelecionada + " | Total veículos: " + totalVeiculos +
+                       " | Intervalo: " + intervaloMs + " ms");
 
-        // ===============================
         // 3. DISTRIBUIR ENTRE E1/E2/E3
-        // ===============================
         int nEntradas = selecionadas.size();
         int base = totalVeiculos / nEntradas;
         int resto = totalVeiculos % nEntradas;
 
-        GeradorVeiculosLimitado[] geradores = new GeradorVeiculosLimitado[nEntradas];
+        GeradorVeiculos[] geradores = new GeradorVeiculos[nEntradas];
 
         int idx = 0;
         for (JsonObject e : selecionadas) {
-
             String id = e.get("id").getAsString();
             String host = e.get("cruzamentoHost").getAsString();
             int porta = e.get("cruzamentoPorta").getAsInt();
 
             int limiteLocal = base + (idx < resto ? 1 : 0);
 
-            System.out.printf("Entrada %s → %d veículos%n", id, limiteLocal);
+            EnviarLogs.enviar(TipoLog.SISTEMA, "Entrada " + id + " → vai gerar " + limiteLocal + " veículos.");
 
-            geradores[idx] = new GeradorVeiculosLimitado(
+            geradores[idx] = new GeradorVeiculos(
                     PontoEntrada.valueOf(id),
                     host,
                     porta,
                     intervaloMs,
                     limiteLocal
             );
-
             idx++;
         }
 
-        // ===============================
         // 4. INICIAR GERADORES
-        // ===============================
-        System.out.println("\nA iniciar geradores...\n");
+        EnviarLogs.enviar(TipoLog.SISTEMA, "Geradores de entrada iniciados.");
 
-        for (GeradorVeiculosLimitado g : geradores)
+        for (GeradorVeiculos g : geradores) {
             g.start();
+        }
 
-        // ===============================
         // 5. AGUARDAR CONCLUSÃO
-        // ===============================
-        for (GeradorVeiculosLimitado g : geradores)
+        for (GeradorVeiculos g : geradores) {
             g.join();
-
-        System.out.println("\nTodos os geradores terminaram.");
+        }
+        EnviarLogs.enviar(TipoLog.SUCESSO, "Todos os geradores concluíram a criação de veículos.");
     }
 
     private static String readResourceAsString(String resourceName) throws IOException {
         ClassLoader cl = PontosEntradasMain.class.getClassLoader();
         try (InputStream is = cl.getResourceAsStream(resourceName)) {
             if (is == null) {
-                throw new IOException("Recurso não encontrado no classpath: " + resourceName);
+                throw new IOException("Recurso não encontrado: " + resourceName);
             }
             return new String(is.readAllBytes(), StandardCharsets.UTF_8);
         }

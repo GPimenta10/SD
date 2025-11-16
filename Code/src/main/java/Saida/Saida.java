@@ -1,15 +1,16 @@
 package Saida;
 
+import Dashboard.DashLogger;
+import Dashboard.TipoLog;
+import Utils.EnviarLogs;
 import Veiculo.Veiculo;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 /**
  * Classe principal que representa o ponto de saída do sistema.
- * Responsável por receber veículos vindos dos cruzamentos finais
- * (Cr3 e Cr5), registar a sua chegada e comunicar as estatísticas
- * ao Dashboard.
  */
 public class Saida {
 
@@ -24,12 +25,6 @@ public class Saida {
 
     private volatile boolean ativo = true;
 
-    /**
-     * Construtor da Saída.
-     * @param portaServidor Porta TCP de recepção de veículos
-     * @param ipDashboard IP do Dashboard
-     * @param portaDashboard Porta TCP do Dashboard
-     */
     public Saida(int portaServidor, String ipDashboard, int portaDashboard) {
         this.portaServidor = portaServidor;
         this.ipDashboard = ipDashboard;
@@ -41,16 +36,15 @@ public class Saida {
 
     /** Inicia o servidor e a comunicação com o dashboard. */
     public void iniciar() {
-        System.out.printf("[Saida] Iniciada na porta %d. Dashboard: %s:%d%n",
-                portaServidor, ipDashboard, portaDashboard);
+        EnviarLogs.enviar(TipoLog.SISTEMA, "Saída iniciada na porta " + portaServidor + " (Dashboard: " + ipDashboard + ":" + portaDashboard + ")");
+
         threadServidorSaida.start();
         saidaComunicDash.start();
     }
 
     /**
      * Regista um veículo que saiu do sistema.
-     * Atualiza o tempo de saída e armazena para estatísticas.
-     * ATUALIZADO: Logs detalhados + notificação imediata ao Dashboard
+     * Atualiza o tempo de saída e notifica o Dashboard.
      */
     public void registarVeiculo(Veiculo veiculo) {
         long tempoSaida = System.currentTimeMillis();
@@ -61,23 +55,18 @@ public class Saida {
 
         veiculosSaidos.add(veiculo);
 
-        System.out.println("=".repeat(60));
-        System.out.printf("[Saida] 🎯 VEÍCULO SAIU DO SISTEMA%n");
-        System.out.printf("[Saida]    ID: %s%n", veiculo.getId());
-        System.out.printf("[Saida]    Tipo: %s%n", veiculo.getTipo());
-        System.out.printf("[Saida]    Entrada: %s%n", veiculo.getPontoEntrada());
-        System.out.printf("[Saida]    Caminho: %s%n", veiculo.getCaminho());
-        System.out.printf("[Saida]    Tempo no sistema: %.2f segundos%n", tempoTotalSegundos);
-        System.out.printf("[Saida]    Total de saídas: %d%n", veiculosSaidos.size());
-        System.out.println("=".repeat(60));
-
-        // Notifica o Dashboard imediatamente
-        System.out.printf("[Saida] 📤 Notificando Dashboard sobre saída do veículo %s...%n",
-                veiculo.getId());
+        EnviarLogs.enviar(TipoLog.VEICULO, "Veículo " + veiculo.getId() + " (" + veiculo.getTipo() + ") saiu do sistema. " +
+                        "Tempo total: " + String.format("%.2f", tempoTotalSegundos) + " s"
+        );
 
         saidaComunicDash.enviarVeiculoSaiu(veiculo, tempoTotalSegundos);
 
-        System.out.printf("[Saida] ✅ Dashboard notificado com sucesso!%n");
+        // Debug comentado (se quiseres repor no futuro):
+        /*
+        System.out.println("=".repeat(60));
+        System.out.printf("[Saida] Veículo %s saiu do sistema%n", veiculo.getId());
+        System.out.println("=".repeat(60));
+        */
     }
 
     /** Lista imutável dos veículos já processados. */
@@ -90,6 +79,7 @@ public class Saida {
         ativo = false;
         threadServidorSaida.pararServidor();
         saidaComunicDash.parar();
-        System.out.println("[Saida] Encerrada.");
+
+        EnviarLogs.enviar(TipoLog.SISTEMA, "Saída encerrada.");
     }
 }

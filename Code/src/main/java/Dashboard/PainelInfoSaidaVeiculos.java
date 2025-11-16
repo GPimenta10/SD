@@ -4,25 +4,26 @@ import com.google.gson.JsonArray;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 
 /**
- * Painel inferior que mostra os veículos que já saíram do sistema.
+ * Painel que mostra os veículos que já saíram do sistema.
  *
- * 🔧 CORREÇÃO:
- * - Adicionado scroll automático
- * - Layout otimizado para ocupar menos espaço
- * - Tabela com altura fixa e scroll vertical
  */
-public class PainelVeiculos extends JPanel {
+public class PainelInfoSaidaVeiculos extends JPanel {
 
     private DefaultTableModel modeloTabela;
     private JTable tabela;
     private JScrollPane scrollPane;
 
-    public PainelVeiculos() {
+    public PainelInfoSaidaVeiculos() {
         setLayout(new BorderLayout());
         setBorder(BorderFactory.createTitledBorder("Veículos que Saíram do Sistema"));
+        ((javax.swing.border.TitledBorder) getBorder()).setTitleColor(Color.WHITE);
+
+        setBackground(new Color(40, 42, 54));
 
         String[] colunas = {"ID", "Tipo", "Percurso", "Tempo Total"};
         modeloTabela = new DefaultTableModel(colunas, 0) {
@@ -34,10 +35,25 @@ public class PainelVeiculos extends JPanel {
 
         tabela = new JTable(modeloTabela);
 
-        // 🔧 NOVO: Configurações de aparência da tabela
+        // === 🎨 Dracula Theme ===
+        tabela.setBackground(new Color(40, 42, 54));       // Fundo da tabela
+        tabela.setForeground(new Color(248, 248, 242));    // Texto principal
+        tabela.setSelectionBackground(new Color(68, 71, 90));
+        tabela.setSelectionForeground(new Color(248, 248, 242));
+        tabela.setGridColor(new Color(68, 71, 90));        // Linhas da tabela
+
+        tabela.setFont(new Font("Consolas", Font.PLAIN, 13));
+
+        // Header estilo Dracula
+        JTableHeader header = tabela.getTableHeader();
+        header.setBackground(new Color(62, 72, 164));      // Azul Dracula
+        header.setForeground(Color.WHITE);
+        header.setFont(new Font("Consolas", Font.BOLD, 14));
+
+        //Configurações de aparência da tabela
         tabela.setFillsViewportHeight(true);
         tabela.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-        tabela.getTableHeader().setReorderingAllowed(false); // Não permite reordenar colunas
+        tabela.getTableHeader().setReorderingAllowed(false);
 
         // Ajusta larguras das colunas
         tabela.getColumnModel().getColumn(0).setPreferredWidth(100); // ID
@@ -45,29 +61,22 @@ public class PainelVeiculos extends JPanel {
         tabela.getColumnModel().getColumn(2).setPreferredWidth(250); // Percurso
         tabela.getColumnModel().getColumn(3).setPreferredWidth(90);  // Tempo
 
-        // 🔧 NOVO: ScrollPane com scroll vertical sempre visível
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(modeloTabela);
+        tabela.setRowSorter(sorter);
+
+        //Ordenar colunas
+        sorter.setSortable(0, true);  // ID
+        sorter.setSortable(1, true);  // Tipo
+        sorter.setSortable(2, false); // Percurso → desativado
+        sorter.setSortable(3, true);
+
+        //ScrollPane com scroll vertical sempre visível
         scrollPane = new JScrollPane(tabela);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
         add(scrollPane, BorderLayout.CENTER);
     }
-
-    /**
-     * Adiciona um veículo à tabela de saídas
-     * Não está a ser usado
-     *
-    public synchronized void adicionarVeiculo(String id, String tipo, String entrada, String percurso, double tempo) {
-        SwingUtilities.invokeLater(() -> {
-            modeloTabela.addRow(new Object[]{id, tipo, entrada, percurso, String.format("%.2f", tempo)});
-
-            // 🔧 NOVO: Scroll automático para a última linha
-            int ultimaLinha = modeloTabela.getRowCount() - 1;
-            if (ultimaLinha >= 0) {
-                tabela.scrollRectToVisible(tabela.getCellRect(ultimaLinha, 0, true));
-            }
-        });
-    }*/
 
     /**
      * Adiciona veículo que saiu do sistema à tabela com dados detalhados do JSON

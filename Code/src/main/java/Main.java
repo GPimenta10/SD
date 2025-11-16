@@ -1,3 +1,6 @@
+import Dashboard.TipoLog;
+import Utils.EnviarLogs;
+
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,124 +22,103 @@ public class Main {
         Process dashboardProc = null;
 
         try {
-            System.out.println("\n=== INICIANDO TESTE COMPLETO: Dashboard + Cruzamentos + E3 ===\n");
-
-            // ======================================
             // 1. DASHBOARD
-            // ======================================
-            System.out.println("• Iniciando Dashboard...");
-            dashboardProc = new ProcessBuilder(
-                    "java", "-cp", CLASSPATH,
-                    "Dashboard.DashboardMain"
-            ).inheritIO().start();
+            System.out.println("A iniciar o Dashboard");
+            dashboardProc = new ProcessBuilder("java", "-cp", CLASSPATH, "Dashboard.DashboardMain").inheritIO().start();
             processos.add(dashboardProc);
             Thread.sleep(2500);
 
-            // ======================================
+            EnviarLogs.enviar(TipoLog.SUCESSO, "Dashboard iniciado com sucesso.");
+
             // 2. SAÍDA S
-            // ======================================
-            System.out.println("• Iniciando Saída S...");
-            Process saidaProc = new ProcessBuilder(
-                    "java", "-cp", CLASSPATH,
-                    "Saida.SaidaMain"
-            ).inheritIO().start();
+            EnviarLogs.enviar(TipoLog.SISTEMA, "A iniciar Saída");
+            Process saidaProc = new ProcessBuilder("java", "-cp", CLASSPATH, "Saida.SaidaMain").inheritIO().start();
             processos.add(saidaProc);
             Thread.sleep(1000);
+            EnviarLogs.enviar(TipoLog.SUCESSO, "Saída S ativa.");
 
-            // ======================================
             // 3. CRUZAMENTOS (Cr1, Cr2, Cr3, Cr4, Cr5)
-            // ======================================
+
             String[] cruzamentos = {"Cr1", "Cr2", "Cr3", "Cr4", "Cr5"};
 
             for (String cruzamento : cruzamentos) {
-                System.out.println("• Iniciando Cruzamento " + cruzamento + "...");
-                Process cruzProc = new ProcessBuilder(
-                        "java", "-cp", CLASSPATH,
-                        "Cruzamentos.CruzamentoMain",
-                        cruzamento
-                ).inheritIO().start();
+                EnviarLogs.enviar(TipoLog.SISTEMA, "A iniciar Cruzamento " + cruzamento + "...");
+                Process cruzProc = new ProcessBuilder("java", "-cp", CLASSPATH, "Cruzamentos.CruzamentoMain", cruzamento).inheritIO().start();
                 processos.add(cruzProc);
                 Thread.sleep(1500);
+                EnviarLogs.enviar(TipoLog.SUCESSO, "Cruzamento " + cruzamento + " ativo.");
             }
 
-            // ======================================
             // 4. GERADORES (apenas E3)
-            // ======================================
-            System.out.println("• Iniciando Geradores (apenas E3 via --only=E3)...");
-            Process geradoresProc = new ProcessBuilder(
-                    "java", "-cp", CLASSPATH,
-                    "PontosEntrada.PontosEntradasMain", "--only=E3"
-            ).inheritIO().start();
+            EnviarLogs.enviar(TipoLog.SISTEMA, "A iniciar geradores de veículos");
+            Process geradoresProc = new ProcessBuilder("java", "-cp", CLASSPATH, "PontosEntrada.PontosEntradasMain", "--only=E1,E2,E3").inheritIO().start();
             processos.add(geradoresProc);
 
-            System.out.println("\n=== SISTEMA EM EXECUÇÃO ===");
+            EnviarLogs.enviar(TipoLog.SUCESSO, "Geradores iniciados (E3).");
+            EnviarLogs.enviar(TipoLog.SISTEMA, "Sistema em execução");
+
+            /*System.out.println("\n=== SISTEMA EM EXECUÇÃO ===");
             System.out.println("Dashboard ativo, veículos a circular...");
             System.out.println("⚠️  O sistema NÃO fecha automaticamente!");
-            System.out.println("📊 Analise os resultados no Dashboard.\n");
+            System.out.println("📊 Analise os resultados no Dashboard.\n");*/
 
-            // ✅ Aguarda que o gerador termine
-            System.out.println("⏳ Aguardando geradores terminarem...");
+            // Aguarda que o gerador termine
+            EnviarLogs.enviar(TipoLog.AVISO, "Aguardando término dos geradores");
             geradoresProc.waitFor();
-            System.out.println("✓ Geradores terminaram de gerar veículos.\n");
+            EnviarLogs.enviar(TipoLog.SUCESSO, "Geradores concluíram as suas operações.");
 
-            // ✅ Aguarda tempo extra para veículos terminarem visualmente (2 minutos)
-            System.out.println("⏳ Aguardando veículos terminarem de circular (120 segundos)...");
+            //Aguarda tempo extra para veículos terminarem visualmente (2 minutos)
+            EnviarLogs.enviar(TipoLog.AVISO, "Aguardando veículos terminarem de circular (120s)...");
             Thread.sleep(120_000);
 
-            System.out.println("\n=== PROCESSOS BACKEND TERMINARAM ===");
-            System.out.println("📊 Dashboard permanece aberto para análise.");
-            System.out.println("❌ Feche o Dashboard manualmente quando terminar.\n");
+            EnviarLogs.enviar(TipoLog.SISTEMA, "Processos backend concluídos.");
 
-            // ✅ Encerra apenas processos backend (não o Dashboard)
             encerrarProcessosBackend(processos, dashboardProc);
 
-            // ✅ Mantém main thread viva (Dashboard continua aberto)
-            System.out.println("⌛ Aguardando fechamento manual do Dashboard...\n");
+            EnviarLogs.enviar(TipoLog.AVISO, "Dashboard continuará aberto até ser fechado manualmente.");
+
             dashboardProc.waitFor();
-
-            System.out.println("✓ Dashboard encerrado pelo usuário.");
-
+            EnviarLogs.enviar(TipoLog.SISTEMA, "Dashboard encerrado pelo utilizador.");
         } catch (Exception e) {
-            System.err.println("\nERRO: " + e.getMessage());
-            e.printStackTrace();
+            EnviarLogs.enviar(TipoLog.ERRO, "Erro no Main: " + e.getMessage());
         } finally {
             encerrarProcessos(processos);
         }
     }
 
     /**
-     * ✅ NOVO: Encerra apenas processos backend (mantém Dashboard)
+     * Encerra apenas processos backend (mantém Dashboard)
      */
     private static void encerrarProcessosBackend(List<Process> todos, Process dashboard) {
-        System.out.println("Encerrando processos backend...");
+        EnviarLogs.enviar(TipoLog.AVISO, "Encerrando processos backend");
 
         for (Process p : todos) {
             if (p != dashboard && p.isAlive()) {
                 p.destroy();
                 try {
                     p.waitFor();
-                } catch (InterruptedException ignored) {}
+                } catch (InterruptedException ignored) {
+                }
             }
         }
-
-        System.out.println("✓ Processos backend encerrados.\n");
+        EnviarLogs.enviar(TipoLog.SUCESSO, "Backend encerrado.");
     }
 
     /**
      * Encerra todos os processos (incluindo Dashboard)
      */
     private static void encerrarProcessos(List<Process> processos) {
-        System.out.println("Encerrando todos os processos restantes...");
+        EnviarLogs.enviar(TipoLog.SISTEMA, "A encerrar todos os processos.");
 
         for (Process p : processos) {
             if (p.isAlive()) {
                 p.destroy();
                 try {
                     p.waitFor();
-                } catch (InterruptedException ignored) {}
+                } catch (InterruptedException ignored) {
+                }
             }
         }
-
-        System.out.println("✓ Todos os processos encerrados.\n");
+        EnviarLogs.enviar(TipoLog.SISTEMA, "Todos os processos encerrados.");
     }
 }

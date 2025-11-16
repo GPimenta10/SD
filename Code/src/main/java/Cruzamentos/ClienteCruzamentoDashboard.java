@@ -9,49 +9,54 @@ import Rede.Cliente;
 import Rede.Mensagem;
 
 /**
- * Thread responsável por enviar periodicamente o estado do cruzamento ao Dashboard.
+ * Thread responsável por enviar periodicamente o estado do cruzamento para o Dashboard.
+ * O envio é contínuo enquanto o cruzamento estiver ativo.
  */
-public class ThreadDashboardCliente extends Thread {
+public class ClienteCruzamentoDashboard extends Thread {
 
     private final Cruzamento cruzamento;
     private final Cliente clienteDashboard;
     private final Gson gson = new Gson();
     private volatile boolean ativo = true;
 
-    // Intervalo entre atualizações (em ms)
+    // Frequência de envio das estatísticas ao Dashboard
     private static final long INTERVALO_ENVIO_MS = 1000;
 
     /**
      * Construtor do cliente do Dashboard.
      *
-     * @param ipDashboard IP do Dashboard
-     * @param portaDashboard Porta TCP do Dashboard
-     * @param cruzamento Referência ao cruzamento atual
+     * @param ipDashboard     IP do Dashboard
+     * @param portaDashboard  Porta TCP do Dashboard
+     * @param cruzamento      Referência ao cruzamento associado a este cliente
      */
-    public ThreadDashboardCliente(String ipDashboard, int portaDashboard, Cruzamento cruzamento) {
+    public ClienteCruzamentoDashboard(String ipDashboard, int portaDashboard, Cruzamento cruzamento) {
         super("DashboardCliente-" + cruzamento.getNomeCruzamento());
         this.cruzamento = cruzamento;
         this.clienteDashboard = new Cliente(ipDashboard, portaDashboard);
     }
 
+    /**
+     * Execução base da thread
+     */
     @Override
     public void run() {
-        System.out.printf("[DashboardCliente %s] Iniciado. Enviando estatísticas para Dashboard...%n",
+        // Debug opcional:
+        /*
+        System.out.printf("[DashboardCliente %s] Iniciado.%n",
                 cruzamento.getNomeCruzamento());
-
+        */
         try {
-            // Pequeno atraso inicial para dar tempo ao Dashboard de se inicializar
-            Thread.sleep(2000);
+            Thread.sleep(2000); // pequeno atraso inicial
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
 
         while (ativo) {
             try {
-                // Obtém o mapa de estatísticas diretamente do cruzamento
+                // Obtém o estado detalhado do cruzamento
                 Map<String, Object> estadoCruzamento = cruzamento.gerarEstatisticas();
 
-                // Cria a mensagem de tipo "ESTATISTICA"
+                // Prepara mensagem JSON
                 Map<String, Object> conteudo = new HashMap<>();
                 conteudo.put("estado", estadoCruzamento);
 
@@ -65,20 +70,25 @@ public class ThreadDashboardCliente extends Thread {
                 clienteDashboard.enviarMensagem(mensagem);
 
                 Thread.sleep(INTERVALO_ENVIO_MS);
-
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
+                // Erro técnico – manter silencioso para evitar spam
+                /*
                 System.err.printf("[DashboardCliente %s] Erro ao enviar estatísticas: %s%n",
                         cruzamento.getNomeCruzamento(), e.getMessage());
+                */
             }
         }
-
-        System.out.printf("[DashboardCliente %s] Encerrado.%n", cruzamento.getNomeCruzamento());
+        // Debug opcional:
+        /*
+        System.out.printf("[DashboardCliente %s] Encerrado.%n",
+                cruzamento.getNomeCruzamento());
+        */
     }
 
     /**
-     * Encerra o envio de dados para o Dashboard.
+     * Encerra o envio periódico de dados ao Dashboard.
      */
     public void parar() {
         ativo = false;

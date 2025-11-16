@@ -15,7 +15,6 @@ import com.google.gson.JsonObject;
  * Servidor que recebe mensagens TCP dos cruzamentos e da saída.
  * Atualiza a interface gráfica em tempo real.
  *
- * ATUALIZADO: Processa mensagens de movimento de veículos para animação no mapa
  */
 public class ThreadServidorDashboard extends Thread {
 
@@ -32,14 +31,17 @@ public class ThreadServidorDashboard extends Thread {
     @Override
     public void run() {
         try (ServerSocket serverSocket = new ServerSocket(porta)) {
-            System.out.println("[DashboardServidor] A escutar na porta " + porta + "...");
+            DashLogger.log(TipoLog.SISTEMA,"Dashboard a escutar na porta " + porta);
 
             while (ativo) {
                 Socket socket = serverSocket.accept();
                 new Thread(() -> processarCliente(socket)).start();
             }
         } catch (Exception e) {
-            if (ativo) System.err.println("[DashboardServidor] Erro: " + e.getMessage());
+            if (ativo) {
+                DashLogger.log(TipoLog.ERRO,
+                        "Erro no servidor do Dashboard: " + e.getMessage());
+            }
         }
     }
 
@@ -50,7 +52,7 @@ public class ThreadServidorDashboard extends Thread {
                 processarMensagem(linha);
             }
         } catch (Exception e) {
-            System.err.println("[DashboardServidor] Erro no cliente: " + e.getMessage());
+            DashLogger.log(TipoLog.ERRO, "Erro ao processar cliente: " + e.getMessage());
         }
     }
 
@@ -62,20 +64,55 @@ public class ThreadServidorDashboard extends Thread {
             switch (tipo) {
                 case "VEICULO_SAIU" -> processarVeiculoSaida(obj);
                 case "VEICULO_GERADO" -> processarVeiculoGerado(obj);
-                case "VEICULO_MOVIMENTO" -> processarVeiculoMovimento(obj); // NOVO
-                case "ESTATISTICA" -> processarEstatisticaCruzamento(obj); // OPCIONAL
-                default -> System.out.println("[DashboardServidor] Tipo desconhecido: " + tipo);
+                case "VEICULO_MOVIMENTO" -> processarVeiculoMovimento(obj);
+                case "ESTATISTICA" -> processarEstatisticaCruzamento(obj);
+                case "ESTATISTICA_SAIDA" -> processarEstatisticaSaida(obj);
+                case "LOG" -> processarLog(obj);
+                default -> DashLogger.log(TipoLog.AVISO,"Mensagem desconhecida recebida: " + tipo);
             }
         } catch (Exception e) {
-            System.err.println("[DashboardServidor] Erro JSON: " + e.getMessage());
-            e.printStackTrace();
+            DashLogger.log(TipoLog.ERRO, "Erro ao interpretar JSON: " + e.getMessage());
         }
     }
 
+    private void processarLog(JsonObject obj) {
+        try {
+            if (!obj.has("processo") || !obj.has("nivel") || !obj.has("mensagem")) {
+                DashLogger.log(TipoLog.AVISO, "LOG recebido mas faltam campos obrigatórios.");
+                return;
+            }
+
+            String processo = obj.get("processo").getAsString();
+            String nivelStr = obj.get("nivel").getAsString();
+            String mensagem = obj.get("mensagem").getAsString();
+
+            TipoLog nivel;
+            try {
+                nivel = TipoLog.valueOf(nivelStr);
+            } catch (Exception e) {
+                nivel = TipoLog.AVISO;
+            }
+
+            DashLogger.log(nivel, "[" + processo + "] " + mensagem);
+
+        } catch (Exception e) {
+            DashLogger.log(TipoLog.ERRO,
+                    "Erro ao processar LOG recebido: " + e.getMessage());
+        }
+    }
+
+    private void processarEstatisticaSaida(JsonObject obj) {
+        // Neste momento não fazemos nada com estatísticas da Saída.
+        // Método aqui apenas para evitar warnings ou erros.
+    }
+
     /**
-     * Processa mensagem de veículo que saiu do sistema
+     * Processar veiculo na saida
+     *
+     * @param obj
      */
     private void processarVeiculoSaida(JsonObject obj) {
+
         JsonObject conteudo = obj.getAsJsonObject("conteudo");
 
         String id = conteudo.get("id").getAsString();
@@ -89,22 +126,25 @@ public class ThreadServidorDashboard extends Thread {
             dashboardFrame.getPainelEstatisticas().incrementarSaidas();
         });
 
-        System.out.printf("[DashboardServidor] Veículo saiu: %s (%s) - %.2fs%n", id, tipo, tempoTotal);
+        DashLogger.log(TipoLog.VEICULO, "Veículo saiu: " + id + " (" + tipo + "), tempo total: " + tempoTotal + "s");
     }
 
-    /**
-     * Processa mensagem de veículo gerado
-     */
+    // =========================================================
+    //  VEÍCULO GERADO
+    // =========================================================
     private void processarVeiculoGerado(JsonObject obj) {
         String entrada = obj.get("origem").getAsString();
+
         SwingUtilities.invokeLater(() -> dashboardFrame.getPainelEstatisticas().incrementarGerado(entrada));
-        System.out.printf("[DashboardServidor] Veículo gerado em %s%n", entrada);
+
+        DashLogger.log(TipoLog.GERADOR, "Veículo gerado em " + entrada);
     }
 
-    /**
-     * NOVO: Processa mensagem de movimento de veículo (para animação no mapa)
-     */
+    // =========================================================
+    //  MOVIMENTO (ANIMAÇÃO)
+    // =========================================================
     private void processarVeiculoMovimento(JsonObject obj) {
+
         JsonObject conteudo = obj.getAsJsonObject("conteudo");
 
         String id = conteudo.get("id").getAsString();
@@ -112,20 +152,28 @@ public class ThreadServidorDashboard extends Thread {
         String origem = conteudo.get("origem").getAsString();
         String destino = conteudo.get("destino").getAsString();
 
-        SwingUtilities.invokeLater(() -> dashboardFrame.getPainelMapa().atualizarOuCriarVeiculo(id, tipo, origem, destino)
+        SwingUtilities.invokeLater(() ->
+                dashboardFrame.getPainelMapa()
+                        .atualizarOuCriarVeiculo(id, tipo, origem, destino)
         );
 
-        System.out.printf("[DashboardServidor] Movimento: %s (%s) de %s → %s%n", id, tipo, origem, destino);
+        // ❌ SPAM — ANTES:
+        // DashLogger.log(TipoLog.VEICULO, "Movimento: ...");
+
+        // ✔ Apenas regista internamente (se precisares)
+        // System.out.println("[DEBUG MOVIMENTO] " + id + " " + origem + " → " + destino);
     }
 
-    /**
-     * Processa estatísticas de cruzamentos (estado dos semáforos)
-     */
+    // =========================================================
+    //  ESTATÍSTICAS DE CRUZAMENTO (semafóros)
+    // =========================================================
     private void processarEstatisticaCruzamento(JsonObject obj) {
+
         String cruzamento = obj.get("origem").getAsString();
         JsonObject conteudo = obj.getAsJsonObject("conteudo");
 
         if (conteudo != null && conteudo.has("estado")) {
+
             JsonObject estado = conteudo.getAsJsonObject("estado");
 
             if (estado.has("semaforos")) {
@@ -134,31 +182,41 @@ public class ThreadServidorDashboard extends Thread {
                 for (int i = 0; i < semaforos.size(); i++) {
                     JsonObject semaforo = semaforos.get(i).getAsJsonObject();
 
-                    int id = semaforo.get("id").getAsInt(); // ou getAsDouble().intValue() se houver problemas
+                    int id = semaforo.get("id").getAsInt();
                     String estadoSem = semaforo.get("estado").getAsString();
                     boolean verde = "VERDE".equals(estadoSem);
 
-                    // NOVO: Registar o ID se tivermos a informação completa
                     if (semaforo.has("origem") && semaforo.has("destino")) {
-                        String origemSemaforo = semaforo.get("origem").getAsString();
-                        String destinoSemaforo = semaforo.get("destino").getAsString();
+                        String origemSem = semaforo.get("origem").getAsString();
+                        String destinoSem = semaforo.get("destino").getAsString();
+
                         SwingUtilities.invokeLater(() ->
-                                dashboardFrame.getPainelMapa().registarSemaforoId(cruzamento, id, origemSemaforo, destinoSemaforo)
+                                dashboardFrame.getPainelMapa()
+                                        .registarSemaforoId(cruzamento, id, origemSem, destinoSem)
                         );
                     }
 
-                    // Agora, atualiza o mapa pelo ID (que já deve estar registado)
-                    SwingUtilities.invokeLater(() -> dashboardFrame.getPainelMapa().atualizarSemaforoPorId(cruzamento, id, verde));
+                    SwingUtilities.invokeLater(() ->
+                            dashboardFrame.getPainelMapa()
+                                    .atualizarSemaforoPorId(cruzamento, id, verde)
+                    );
                 }
             }
-        }
 
-        System.out.printf("[DashboardServidor] Estatísticas de %s processadas%n", cruzamento);
+            // ❌ SPAM — antes imprimias “Estado atualizado” a torto e a direito.
+            // DashLogger.log(TipoLog.CRUZAMENTO, "Estado atualizado: " + cruzamento);
+
+            // ✔ Se quiseres manter *resumo*, usa isto:
+            // DashLogger.log(TipoLog.CRUZAMENTO, "Cruzamento " + cruzamento + " recebeu estatísticas.");
+        }
     }
 
+    // =========================================================
+    //  ENCERRAR
+    // =========================================================
     public void parar() {
         ativo = false;
         interrupt();
-        System.out.println("[DashboardServidor] Encerrado.");
+        DashLogger.log(TipoLog.SISTEMA, "Servidor do Dashboard encerrado");
     }
 }

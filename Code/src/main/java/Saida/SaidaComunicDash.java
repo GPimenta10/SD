@@ -1,7 +1,11 @@
 package Saida;
 
-import com.google.gson.Gson;
+import Dashboard.DashLogger;
+import Dashboard.TipoLog;
+import Utils.EnviarLogs;
 import Veiculo.Veiculo;
+
+import com.google.gson.Gson;
 
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -12,7 +16,6 @@ import java.util.Map;
 /**
  * Thread responsável por enviar periodicamente as estatísticas
  * da saída (veículos removidos do sistema) ao Dashboard.
- * Também envia mensagens imediatas sempre que um novo veículo sai.
  */
 public class SaidaComunicDash extends Thread {
 
@@ -32,23 +35,23 @@ public class SaidaComunicDash extends Thread {
 
     @Override
     public void run() {
-        System.out.printf("[SaidaComunicDash] Iniciado. Enviando dados para %s:%d...%n",
-                ipDashboard, portaDashboard);
+       EnviarLogs.enviar(TipoLog.SISTEMA, "Saída: comunicação com Dashboard iniciada em " + ipDashboard + ":" + portaDashboard);
 
         while (ativo) {
             try {
-                enviarEstatisticas(); // envia resumo periódico
+                enviarEstatisticas();
                 Thread.sleep(5000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         }
 
-        System.out.println("[SaidaComunicDash] Encerrado.");
+       EnviarLogs.enviar(TipoLog.SISTEMA, "Saída: comunicação com Dashboard encerrada.");
     }
 
     /**
      * Envia o resumo periódico com o total de veículos saídos.
+     * (Este evento é silencioso — não é enviado para o DashLogger)
      */
     private void enviarEstatisticas() {
         List<Veiculo> veiculosSaidos = saida.getVeiculosSaidos();
@@ -64,15 +67,15 @@ public class SaidaComunicDash extends Thread {
         mensagem.put("conteudo", conteudo);
 
         enviarJson(mensagem);
-        System.out.printf("[SaidaComunicDash] Estatísticas enviadas (%d veículos).%n", veiculosSaidos.size());
+
+        // Debug opcional (comentado):
+        // System.out.printf("[SaidaComunicDash] Estatísticas enviadas (%d veículos).%n", veiculosSaidos.size());
     }
 
 
     /**
-     * Envia uma mensagem imediata ao dashboard quando um veículo sai.
-     *
-     * @param veiculo veículo que saiu
-     * @param tempoTotal tempo total no sistema (em segundos)
+     * Envia uma mensagem imediata ao Dashboard quando um veículo sai.
+     * (Este evento deve ser visível visivelmente no PainelLogs)
      */
     public void enviarVeiculoSaiu(Veiculo veiculo, double tempoTotal) {
         Map<String, Object> conteudo = new HashMap<>();
@@ -91,22 +94,22 @@ public class SaidaComunicDash extends Thread {
 
         enviarJson(mensagem);
 
-        System.out.printf(
-                "[SaidaComunicDash] Enviado veículo %s (%s) ao Dashboard. Tempo total: %.2f s%n",
-                veiculo.getId(), veiculo.getTipo(), tempoTotal
-        );
+       EnviarLogs.enviar(TipoLog.VEICULO, "Veículo " + veiculo.getId() + " (" + veiculo.getTipo() +") saiu do sistema. Tempo total: "
+                + String.format("%.2f", tempoTotal) + " s");
     }
 
+
     /**
-     * Envia qualquer mapa convertido em JSON ao dashboard.
+     * Envia qualquer mapa convertido em JSON ao Dashboard.
      */
     private void enviarJson(Map<String, Object> dados) {
         String json = gson.toJson(dados);
+
         try (Socket socket = new Socket(ipDashboard, portaDashboard);
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
-             out.println(json);
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+            out.println(json);
         } catch (Exception e) {
-            System.err.println("[SaidaComunicDash] Falha ao enviar dados: " + e.getMessage());
+           EnviarLogs.enviar(TipoLog.AVISO, "Saída: falha ao enviar dados ao Dashboard (" + e.getMessage() + ")");
         }
     }
 
