@@ -217,7 +217,7 @@ class VeiculoNoMapa {
         double distSemaforo = origem.distance(posicaoSemaforo);
         double recuo = posicaoNaFila * DISTANCIA_FILA;
 
-        double distanciaParada = Math.max(0, distSemaforo - 30 - recuo);
+        double distanciaParada = Math.max(0, distSemaforo - 20 - recuo);
 
         double x = origemAjustada.getX() + ux * distanciaParada;
         double y = origemAjustada.getY() + uy * distanciaParada;
@@ -256,7 +256,6 @@ class VeiculoNoMapa {
     String getTipo() { return tipo; }
     Point2D getPosicaoAtual() { return posicaoAtual; }
     boolean isParado() { return parado; }
-    long getTimestampEntrada() { return timestampEntrada; }
 
     long getDwellingTimeSegundos() {
         return (System.currentTimeMillis() - timestampEntrada) / 1000;
@@ -266,7 +265,7 @@ class VeiculoNoMapa {
         return switch (tipo) {
             case "MOTA" -> new Color(255, 193, 7);   // Amarelo
             case "CARRO" -> new Color(33, 150, 243); // Azul
-            case "CAMIAO" -> new Color(244, 67, 54); // Vermelho
+            case "CAMIAO" -> new Color(130, 109, 56); // Vermelho
             default -> Color.GRAY;
         };
     }

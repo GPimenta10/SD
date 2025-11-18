@@ -154,9 +154,7 @@ public class ServidorDashboard extends Thread {
     //  VEÍCULO GERADO
     private void processarVeiculoGerado(JsonObject obj) {
         String entrada = obj.get("origem").getAsString();
-
         SwingUtilities.invokeLater(() -> dashboardFrame.getPainelEstatisticas().incrementarGerado(entrada));
-
         DashLogger.log(TipoLog.GERADOR, "Veículo gerado em " + entrada);
     }
 
@@ -173,12 +171,6 @@ public class ServidorDashboard extends Thread {
                 dashboardFrame.getPainelMapa()
                         .atualizarOuCriarVeiculo(id, tipo, origem, destino)
         );
-
-        // ❌ SPAM — ANTES:
-        // DashLogger.log(TipoLog.VEICULO, "Movimento: ...");
-
-        // ✔ Apenas regista internamente (se precisares)
-        // System.out.println("[DEBUG MOVIMENTO] " + id + " " + origem + " → " + destino);
     }
 
     //  ESTATÍSTICAS DE CRUZAMENTO (semafóros)
@@ -203,7 +195,7 @@ public class ServidorDashboard extends Thread {
                         String origemSem = semaforo.get("origem").getAsString();
                         String destinoSem = semaforo.get("destino").getAsString();
                         String nomeSemaforo = origemSem + "→" + destinoSem;
-                        int filaAtual = 0;
+                        int filaAtual = semaforo.has("tamanhoFila")? semaforo.get("tamanhoFila").getAsInt(): 0;
 
                         SwingUtilities.invokeLater(() -> dashboardFrame.getPainelMapa().registarSemaforoId(cruzamento, id, origemSem, destinoSem));
                         SwingUtilities.invokeLater(() -> dashboardFrame.getPainelEstatisticasCruzamentos().atualizarFila(cruzamento, nomeSemaforo, filaAtual));

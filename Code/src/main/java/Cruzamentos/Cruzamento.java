@@ -74,6 +74,22 @@ public class Cruzamento {
     }
 
     /**
+     * Obtém o tamanho atual de uma fila específica.
+     *
+     * @param origemFila Identificador da fila
+     * @return Tamanho da fila, ou -1 se não existir
+     */
+    public int obterTamanhoFila(String origemFila) {
+        FilaVeiculos fila = mapaOrigemParaFila.get(origemFila);
+
+        if (fila == null) {
+            return -1;
+        }
+
+        return fila.getTamanhoAtual();
+    }
+
+    /**
      * Define uma ligação entre uma origem deste cruzamento e um cruzamento seguinte.
      *
      * @param origem Nome da origem
@@ -191,7 +207,7 @@ public class Cruzamento {
 
         if (cliente == null) {
             EnviarLogs.enviar(TipoLog.ERRO, String.format("[%s] ERRO: Cliente TCP para '%s' não existe",
-                            nomeCruzamento, destino));
+                    nomeCruzamento, destino));
             return;
         }
 
@@ -204,7 +220,7 @@ public class Cruzamento {
      */
     private void notificarDashboardMovimento(Veiculo veiculo, String origem, String destino) {
         try (Socket socket = new Socket(ipDashboard, portaDashboard);
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
             Map<String, Object> conteudo = new HashMap<>();
             conteudo.put("id", veiculo.getId());
@@ -221,7 +237,7 @@ public class Cruzamento {
             out.println(gson.toJson(mensagem));
         } catch (IOException e) {
             EnviarLogs.enviar(TipoLog.ERRO, String.format("[%s] Falha ao notificar Dashboard: %s",
-                            nomeCruzamento, e.getMessage()));
+                    nomeCruzamento, e.getMessage()));
         }
     }
 

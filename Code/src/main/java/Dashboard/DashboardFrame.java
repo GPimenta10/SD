@@ -67,7 +67,7 @@ public class DashboardFrame extends JFrame {
         //        COLUNA CENTRAL
         // ================================
         painelMapa.setPreferredSize(new Dimension(400, 500));
-        painelEstatsGlobais.setPreferredSize(new Dimension(0, 200));
+        painelEstatsGlobais.setPreferredSize(new Dimension(0, 125));
 
         JPanel colunaCentro = criarColuna(-1);
         colunaCentro.add(painelMapa, BorderLayout.CENTER);

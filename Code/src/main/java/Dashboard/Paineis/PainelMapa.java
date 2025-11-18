@@ -23,7 +23,7 @@ public class PainelMapa extends JPanel {
 
     private static final int LARGURA_CRUZAMENTO = 60;
     private static final int ALTURA_CRUZAMENTO = 40;
-    private static final int TAMANHO_VEICULO = 8;
+    private static final int TAMANHO_VEICULO = 10;
     private static final int TAMANHO_SEMAFORO = 12;
     private static final int ESPACAMENTO_VIA_DUPLA = 10;
 
@@ -64,7 +64,6 @@ public class PainelMapa extends JPanel {
         String chaveVisual = mapaIds.get(id);
 
         if (chaveVisual == null) {
-            System.err.println("[PainelMapa] Falhou: semáforo ID " + id + " não registado!");
             return;
         }
 
@@ -96,11 +95,11 @@ public class PainelMapa extends JPanel {
 
     private void inicializarPosicoes() {
         int larguraMapa = 500;
-        int espacoH = 175;
-        int espacoV = 150;
+        int espacoH = 225;
+        int espacoV = 175;
 
         int larguraRede = espacoH * 2;
-        int margemX = (larguraMapa - larguraRede) / 2 + 50;
+        int margemX = 50;
         int margemY = 60;
 
         posicoes.put("E1", new Point2D.Double(margemX, margemY));
@@ -117,16 +116,20 @@ public class PainelMapa extends JPanel {
     }
 
     private void inicializarPosicoesSemaforos() {
-        posicoesSemaforos.put("Cr1_E1-Cr1",  new Point2D.Double(110, 178));
-        posicoesSemaforos.put("Cr1_Cr2-Cr1", new Point2D.Double(168, 188));
-        posicoesSemaforos.put("Cr2_E2-Cr2",  new Point2D.Double(288, 178));
-        posicoesSemaforos.put("Cr2_Cr1-Cr2", new Point2D.Double(258, 233));
-        posicoesSemaforos.put("Cr2_Cr3-Cr2", new Point2D.Double(342, 188));
-        posicoesSemaforos.put("Cr3_E3-Cr3",  new Point2D.Double(460, 178));
-        posicoesSemaforos.put("Cr3_Cr2-Cr3", new Point2D.Double(435, 233));
-        posicoesSemaforos.put("Cr4_Cr1-Cr4", new Point2D.Double(110, 328));
-        posicoesSemaforos.put("Cr5_Cr2-Cr5", new Point2D.Double(288, 328));
-        posicoesSemaforos.put("Cr5_Cr4-Cr5", new Point2D.Double(258, 370));
+        posicoesSemaforos.put("Cr1_E1-Cr1",  new Point2D.Double(35, 200));
+        posicoesSemaforos.put("Cr1_Cr2-Cr1", new Point2D.Double(90, 210));
+
+        posicoesSemaforos.put("Cr2_E2-Cr2",  new Point2D.Double(260, 200));
+        posicoesSemaforos.put("Cr2_Cr1-Cr2", new Point2D.Double(233, 258));
+        posicoesSemaforos.put("Cr2_Cr3-Cr2", new Point2D.Double(315, 210));
+
+        posicoesSemaforos.put("Cr3_E3-Cr3",  new Point2D.Double(488, 200));
+        posicoesSemaforos.put("Cr3_Cr2-Cr3", new Point2D.Double(458, 258));
+
+        posicoesSemaforos.put("Cr4_Cr1-Cr4", new Point2D.Double(35, 375));
+
+        posicoesSemaforos.put("Cr5_Cr2-Cr5", new Point2D.Double(260, 378));
+        posicoesSemaforos.put("Cr5_Cr4-Cr5", new Point2D.Double(233, 425));
     }
 
     private void inicializarEstadosSemaforos() {
@@ -317,7 +320,6 @@ public class PainelMapa extends JPanel {
     }
 
     private void desenharSemaforos(Graphics2D g2d) {
-
         for (Map.Entry<String, Point2D> entry : posicoesSemaforos.entrySet()) {
 
             String chave = entry.getKey();
@@ -342,7 +344,6 @@ public class PainelMapa extends JPanel {
     }
 
     private void desenharVeiculos(Graphics2D g2d) {
-
         for (VeiculoNoMapa veiculo : veiculosEmTransito) {
 
             Point2D pos = veiculo.getPosicaoAtual();
@@ -364,18 +365,37 @@ public class PainelMapa extends JPanel {
     }
 
     private void desenharLegenda(Graphics2D g2d) {
-        int x = 15;
-        int y = 50;
-
         g2d.setFont(UIManager.getFont("Label.font"));
         g2d.setColor(UIManager.getColor("Label.foreground"));
-        g2d.drawString("Legenda:", x, y);
 
-        int yItem = y + 20;
+        int largura = getWidth();
+        int altura = getHeight();
+        int margemInferior = 20;
 
-        desenharItemLegenda(g2d, x, yItem, new Color(255, 193, 7), "Mota");
-        desenharItemLegenda(g2d, x, yItem + 25, new Color(33, 150, 243), "Carro");
-        desenharItemLegenda(g2d, x, yItem + 50, new Color(244, 67, 54), "Camião");
+        int y = altura - margemInferior;
+
+        int espacamento = 90;
+        int larguraLegenda = 0;
+
+        // Medir comprimento do texto "Legenda:"
+        String txtLegenda = "Legenda:";
+        int larguraTextoLegenda = g2d.getFontMetrics().stringWidth(txtLegenda);
+
+        larguraLegenda = larguraTextoLegenda + 20 + 3 * espacamento;
+
+        // Calcular X inicial para centrar tudo
+        int x = (largura - larguraLegenda) / 2;
+
+        // Desenhar "Legenda:"
+        g2d.drawString(txtLegenda, x, y);
+
+        // Ponto inicial após texto
+        int xItens = x + larguraTextoLegenda + 20;
+
+        // Desenhar os itens
+        desenharItemLegenda(g2d, xItens, y, new Color(255, 193, 7), "Mota");
+        desenharItemLegenda(g2d, xItens + espacamento, y, new Color(33, 150, 243), "Carro");
+        desenharItemLegenda(g2d, xItens + espacamento * 2, y, new Color(130, 109, 56), "Camião");
     }
 
     private void desenharItemLegenda(Graphics2D g2d, int x, int y, Color cor, String label) {
@@ -458,4 +478,16 @@ public class PainelMapa extends JPanel {
 
         return new Point2D[]{p1Adj, p2Adj};
     }
+
+    private static final Map<String, List<String>> vizinhosValidos = Map.of(
+            "E1", List.of("Cr1"),
+            "E2", List.of("Cr2"),
+            "E3", List.of("Cr3"),
+            "Cr1", List.of("E1", "Cr2", "Cr4"),
+            "Cr2", List.of("E2", "Cr1", "Cr3", "Cr5"),
+            "Cr3", List.of("E3", "Cr2", "S"),
+            "Cr4", List.of("Cr1", "Cr5"),
+            "Cr5", List.of("Cr2", "Cr4", "S"),
+            "S", List.of("Cr3", "Cr5")
+    );
 }

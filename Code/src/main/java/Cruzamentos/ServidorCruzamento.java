@@ -9,8 +9,11 @@ import com.google.gson.Gson;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Servidor de um cruzamento realizado por uma Thread.
@@ -42,7 +45,7 @@ public class ServidorCruzamento extends Thread {
     @Override
     public void run() {
         EnviarLogs.enviar(TipoLog.SISTEMA, "Servidor do cruzamento " + cruzamento.getNomeCruzamento() +
-                        " a escutar na porta " + portaServidor + ".");
+                " a escutar na porta " + portaServidor + ".");
 
         try (ServerSocket serverSocket = new ServerSocket(portaServidor)) {
             while (ativo) {
@@ -61,7 +64,7 @@ public class ServidorCruzamento extends Thread {
             }
         } catch (IOException e) {
             EnviarLogs.enviar(TipoLog.ERRO, "Erro ao iniciar servidor do cruzamento " +
-                            cruzamento.getNomeCruzamento() + ": " + e.getMessage()
+                    cruzamento.getNomeCruzamento() + ": " + e.getMessage()
             );
         }
     }
@@ -72,7 +75,9 @@ public class ServidorCruzamento extends Thread {
      * @param socket
      */
     private void tratarLigacao(Socket socket) {
-        try (BufferedReader leitor = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+        try (BufferedReader leitor = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+             PrintWriter escritor = new PrintWriter(socket.getOutputStream(), true)) {
+
             String linhaJson;
             while ((linhaJson = leitor.readLine()) != null) {
 
@@ -103,26 +108,37 @@ public class ServidorCruzamento extends Thread {
                         }
                         cruzamento.receberVeiculo(veiculo, origem);
                     }
-                } else {
-                    // Debug comentado
-                    /*
-                    System.out.printf(
-                            "[ServidorCruzamento %s] Tipo de mensagem desconhecido: %s%n",
-                            cruzamento.getNomeCruzamento(),
-                            mensagem.getTipo()
-                    );
-                    */
+                }
+                else if ("ESTADO_FILA".equalsIgnoreCase(mensagem.getTipo())) {
+                    // Obter o identificador da fila solicitada
+                    Object origemFilaObj = mensagem.getConteudo().get("origemFila");
+
+                    if (origemFilaObj != null) {
+                        String origemFila = origemFilaObj.toString();
+
+                        // Consultar o tamanho da fila no cruzamento
+                        int tamanhoFila = cruzamento.obterTamanhoFila(origemFila);
+
+                        // Construir mensagem de resposta
+                        Map<String, Object> conteudoResposta = new HashMap<>();
+                        conteudoResposta.put("tamanhoFila", tamanhoFila);
+                        conteudoResposta.put("origemFila", origemFila);
+
+                        Mensagem resposta = new Mensagem(
+                                "RESPOSTA_ESTADO_FILA",
+                                cruzamento.getNomeCruzamento(),
+                                mensagem.getOrigem(),
+                                conteudoResposta
+                        );
+
+                        // Enviar resposta
+                        escritor.println(resposta.toJson());
+                    }
                 }
             }
         } catch (IOException e) {
-            // Debug (não mandar para Dashboard)
-            /*
-            System.err.printf(
-                    "[ServidorCruzamento %s] Erro ao ler mensagem: %s%n",
-                    cruzamento.getNomeCruzamento(),
-                    e.getMessage()
-            );
-            */
+            EnviarLogs.enviar(TipoLog.ERRO, "Erro ao ler mensagem no cruzamento " +
+                    cruzamento.getNomeCruzamento() + ": " + e.getMessage());
         }
     }
 
@@ -132,7 +148,6 @@ public class ServidorCruzamento extends Thread {
     public void pararServidor() {
         ativo = false;
         interrupt();
-
         EnviarLogs.enviar(TipoLog.SISTEMA, "Servidor do cruzamento " + cruzamento.getNomeCruzamento() + " encerrado.");
     }
 }

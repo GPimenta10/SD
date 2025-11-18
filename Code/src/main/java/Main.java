@@ -70,7 +70,7 @@ public class Main {
 
             // 4. GERADORES (apenas E3)
             EnviarLogs.enviar(TipoLog.SISTEMA, "A iniciar geradores de veículos");
-            Process geradoresProc = new ProcessBuilder("java", "-cp", CLASSPATH, "PontosEntrada.PontosEntradasMain", "--only=E1,E2,E3").inheritIO().start();
+            Process geradoresProc = new ProcessBuilder("java", "-cp", CLASSPATH, "PontosEntrada.PontosEntradasMain", "--only=E1").inheritIO().start();
             processos.add(geradoresProc);
 
             EnviarLogs.enviar(TipoLog.SUCESSO, "Geradores iniciados.");
