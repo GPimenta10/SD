@@ -16,7 +16,7 @@ public class Main {
         // Caminhos das dependências
         String gsonPath = Paths.get(m2Repo, "com", "google", "code", "gson", "gson", "2.10.1", "gson-2.10.1.jar").toString();
         String flatLafPath = Paths.get(m2Repo, "com", "formdev", "flatlaf", "3.6.2", "flatlaf-3.6.2.jar").toString();
-        String flatLafThemesPath = Paths.get(m2Repo, "com", "formdev", "flatlaf-intellij-themes", "3.4", "flatlaf-intellij-themes-3.4.jar").toString();
+        String flatLafThemesPath = Paths.get(m2Repo, "com", "formdev", "flatlaf-intellij-themes", "3.6.2", "flatlaf-intellij-themes-3.6.2.jar").toString();
 
         return String.join(separator,
                 "target/classes",
@@ -27,7 +27,6 @@ public class Main {
     }
 
     public static void main(String[] args) {
-
         List<Process> processos = new ArrayList<>();
         Process dashboardProc = null;
 
