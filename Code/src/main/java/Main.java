@@ -1,6 +1,7 @@
 import Dashboard.Logs.TipoLog;
 import Utils.EnviarLogs;
 
+import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,12 +12,22 @@ public class Main {
 
     private static String buildClasspath() {
         String separator = System.getProperty("path.separator");
-        String m2Repo = Paths.get(System.getProperty("user.home"), ".m2", "repository").toString();
 
-        // Caminhos das dependências
-        String gsonPath = Paths.get(m2Repo, "com", "google", "code", "gson", "gson", "2.10.1", "gson-2.10.1.jar").toString();
-        String flatLafPath = Paths.get(m2Repo, "com", "formdev", "flatlaf", "3.6.2", "flatlaf-3.6.2.jar").toString();
-        String flatLafThemesPath = Paths.get(m2Repo, "com", "formdev", "flatlaf-intellij-themes", "3.6.2", "flatlaf-intellij-themes-3.6.2.jar").toString();
+        // Usa JARs da pasta lib/ do projeto (relativo à raiz do projeto)
+        String gsonPath = "lib/gson-2.13.1.jar";
+        String flatLafPath = "lib/flatlaf-3.6.2.jar";
+        String flatLafThemesPath = "lib/flatlaf-intellij-themes-3.6.2.jar";
+
+        // Validação: verifica se os JARs existem
+        if (!new File(gsonPath).exists()) {
+            System.err.println("ERRO: Gson JAR não encontrado em: " + new File(gsonPath).getAbsolutePath());
+        }
+        if (!new File(flatLafPath).exists()) {
+            System.err.println("ERRO: FlatLaf JAR não encontrado em: " + new File(flatLafPath).getAbsolutePath());
+        }
+        if (!new File(flatLafThemesPath).exists()) {
+            System.err.println("ERRO: FlatLaf Themes JAR não encontrado em: " + new File(flatLafThemesPath).getAbsolutePath());
+        }
 
         return String.join(separator,
                 "target/classes",
