@@ -25,10 +25,9 @@ public class DashboardMain {
 
             DashboardFrame frame = new DashboardFrame(gestor);
 
-            ServidorDashboard servidor = new ServidorDashboard(6000, gestor);
+            ServidorDashboard servidor = new ServidorDashboard(6000, frame, gestor);
 
             servidor.start();
-
             frame.setVisible(true);
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {

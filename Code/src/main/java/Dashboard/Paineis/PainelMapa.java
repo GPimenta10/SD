@@ -7,8 +7,8 @@ import javax.swing.*;
 import javax.swing.Timer;
 import java.awt.*;
 import java.awt.geom.Point2D;
-import java.util.List;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -34,7 +34,6 @@ public class PainelMapa extends JPanel {
 
         setPreferredSize(new Dimension(400, 480));
 
-        // MODERNO:
         setBackground(UIManager.getColor("Panel.background"));
         setBorder(BorderFactory.createTitledBorder(
                 UIManager.getBorder("TitledBorder.border"),
@@ -54,6 +53,33 @@ public class PainelMapa extends JPanel {
         this.dashboard = dashboard;
     }
 
+    private void iniciarAnimacao() {
+        animationTimer = new Timer(0, e -> {
+
+            Map<String, Integer> contadorFila = new HashMap<>();
+
+            for (VeiculoNoMapa veiculo : veiculosEmTransito) {
+
+                String chave = veiculo.getChaveSemaforo();
+                boolean verde = estadosSemaforos.getOrDefault(chave, true);
+
+                int posFila = -1;
+                if (!verde && !veiculo.ultrapassouSemaforo()) {
+                    posFila = contadorFila.getOrDefault(chave, 0);
+                    contadorFila.put(chave, posFila + 1);
+                }
+
+                veiculo.atualizar(verde, posFila);
+            }
+
+            veiculosEmTransito.removeIf(VeiculoNoMapa::terminouTodosSegmentos);
+
+            repaint();
+        });
+
+        animationTimer.start();
+    }
+
     public void registarSemaforoId(String cruzamento, int id, String origem, String destino) {
         String chave = cruzamento + "_" + origem + "-" + destino;
         mapaIds.put(id, chave);
@@ -61,17 +87,15 @@ public class PainelMapa extends JPanel {
     }
 
     public void atualizarSemaforoPorId(String cruzamento, int id, boolean verde) {
-        String chaveVisual = mapaIds.get(id);
+        String chave = mapaIds.get(id);
+        if (chave == null) return;
 
-        if (chaveVisual == null) {
-            return;
-        }
-
-        estadosSemaforos.put(chaveVisual, verde);
+        estadosSemaforos.put(chave, verde);
         repaint();
     }
 
     public void atualizarOuCriarVeiculo(String id, String tipo, String origem, String destino) {
+
         if (!veiculosPorId.containsKey(id)) {
             criarVeiculo(id, tipo, origem, destino);
         } else {
@@ -79,18 +103,62 @@ public class PainelMapa extends JPanel {
         }
     }
 
+    private void criarVeiculo(String id, String tipo, String origem, String destino) {
+
+        Point2D posOrigem = posicoes.get(origem);
+        Point2D posDestino = posicoes.get(destino);
+
+        if (posOrigem == null || posDestino == null)
+            return;
+
+        Point2D[] ajust = calcularPosicoesAjustadas(origem, destino);
+        String chaveSem = destino + "_" + origem + "-" + destino;
+
+        VeiculoNoMapa v = new VeiculoNoMapa(
+                id, tipo,
+                posOrigem, posDestino,
+                posicoesSemaforos.get(chaveSem),
+                chaveSem,
+                ajust[0], ajust[1]
+        );
+
+        veiculosPorId.put(id, v);
+        veiculosEmTransito.add(v);
+    }
+
+    private void atualizarDestino(String id, String origem, String destino) {
+
+        VeiculoNoMapa v = veiculosPorId.get(id);
+        if (v == null) return;
+
+        Point2D posOrigem = posicoes.get(origem);
+        Point2D posDestino = posicoes.get(destino);
+
+        if (posOrigem == null || posDestino == null)
+            return;
+
+        Point2D[] ajust = calcularPosicoesAjustadas(origem, destino);
+        String chaveSem = destino + "_" + origem + "-" + destino;
+
+        v.adicionarProximoSegmento(
+                origem, destino, posOrigem, posDestino,
+                chaveSem, posicoesSemaforos.get(chaveSem),
+                ajust[0], ajust[1]
+        );
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        Graphics2D g2d = (Graphics2D) g;
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        desenharVias(g2d);
-        desenharNos(g2d);
-        desenharSemaforos(g2d);
-        desenharVeiculos(g2d);
-        desenharLegenda(g2d);
+        desenharVias(g2);
+        desenharNos(g2);
+        desenharSemaforos(g2);
+        desenharVeiculos(g2);
+        desenharLegenda(g2);
     }
 
     private void inicializarPosicoes() {
@@ -114,6 +182,7 @@ public class PainelMapa extends JPanel {
     }
 
     private void inicializarPosicoesSemaforos() {
+
         posicoesSemaforos.put("Cr1_E1-Cr1",  new Point2D.Double(35, 200));
         posicoesSemaforos.put("Cr1_Cr2-Cr1", new Point2D.Double(90, 210));
 
@@ -141,63 +210,35 @@ public class PainelMapa extends JPanel {
         estadosSemaforos.put("Cr5_Cr4-Cr5", false);
     }
 
-    private void iniciarAnimacao() {
-        animationTimer = new Timer(0, e -> {
-            Map<String, Integer> filaPorSemaforo = new HashMap<>();
+    private Point2D[] calcularPosicoesAjustadas(String origem, String destino) {
+        Point2D p1 = posicoes.get(origem);
+        Point2D p2 = posicoes.get(destino);
 
-            for (VeiculoNoMapa veiculo : veiculosEmTransito) {
-                String chave = veiculo.getChaveSemaforo();
-                boolean semaforoVerde = estadosSemaforos.getOrDefault(chave, true);
+        if (p1 == null || p2 == null) return new Point2D[]{p1, p2};
 
-                if (!semaforoVerde && !veiculo.ultrapassouSemaforo()) {
-                    filaPorSemaforo.put(chave, filaPorSemaforo.getOrDefault(chave, 0) + 1);
-                }
-            }
+        boolean isBidirecional =
+                (origem.equals("Cr1") && destino.equals("Cr2")) ||
+                        (origem.equals("Cr2") && destino.equals("Cr1")) ||
+                        (origem.equals("Cr2") && destino.equals("Cr3")) ||
+                        (origem.equals("Cr3") && destino.equals("Cr2"));
 
-            Map<String, Integer> contadorFila = new HashMap<>();
+        if (!isBidirecional) return new Point2D[]{p1, p2};
 
-            for (VeiculoNoMapa veiculo : veiculosEmTransito) {
-                String chave = veiculo.getChaveSemaforo();
-                boolean semaforoVerde = estadosSemaforos.getOrDefault(chave, true);
+        double dx = p2.getX() - p1.getX();
+        double dy = p2.getY() - p1.getY();
+        double dist = Math.sqrt(dx*dx + dy*dy);
 
-                int posicaoFila = -1;
-                if (!semaforoVerde && !veiculo.ultrapassouSemaforo()) {
-                    posicaoFila = contadorFila.getOrDefault(chave, 0);
-                    contadorFila.put(chave, posicaoFila + 1);
-                }
+        double perpX = -dy / dist * ESPACAMENTO_VIA_DUPLA;
+        double perpY = dx / dist * ESPACAMENTO_VIA_DUPLA;
 
-                veiculo.atualizar(semaforoVerde, posicaoFila);
-            }
-
-            for (VeiculoNoMapa veiculo : veiculosEmTransito) {
-                if (veiculo.terminouTodosSegmentos()) {
-                    processarSaidaVeiculo(veiculo);
-                }
-            }
-
-            veiculosEmTransito.removeIf(VeiculoNoMapa::terminouTodosSegmentos);
-
-            repaint();
-        });
-
-        animationTimer.start();
-    }
-
-    private void processarSaidaVeiculo(VeiculoNoMapa veiculo) {
-        if (dashboard == null) return;
-
-        String id = veiculo.getId();
-        String tipo = veiculo.getTipo();
-        long dwellingTimeSegundos = veiculo.getDwellingTimeSegundos();
-
-        dashboard.getPainelEstatisticasTipo().atualizarEstatisticasSaida(tipo, dwellingTimeSegundos);
-        veiculosPorId.remove(id);
+        return new Point2D[]{
+                new Point2D.Double(p1.getX() + perpX, p1.getY() + perpY),
+                new Point2D.Double(p2.getX() + perpX, p2.getY() + perpY)
+        };
     }
 
     private void desenharVias(Graphics2D g2d) {
-        g2d.setStroke(new BasicStroke(2.0f));
-
-        // Cor moderna FlatLaf
+        g2d.setStroke(new BasicStroke(2f));
         g2d.setColor(UIManager.getColor("Separator.foreground"));
 
         desenharViaSimples(g2d, "E1", "Cr1");
@@ -215,149 +256,112 @@ public class PainelMapa extends JPanel {
         desenharViaSimples(g2d, "Cr5", "S");
     }
 
-    private void desenharViaSimples(Graphics2D g2d, String origem, String destino) {
-        Point2D p1 = posicoes.get(origem);
-        Point2D p2 = posicoes.get(destino);
+    private void desenharViaSimples(Graphics2D g2d, String o, String d) {
+        Point2D p1 = posicoes.get(o);
+        Point2D p2 = posicoes.get(d);
 
-        if (p1 != null && p2 != null) {
-            g2d.drawLine((int) p1.getX(), (int) p1.getY(),
-                    (int) p2.getX(), (int) p2.getY());
-            desenharSeta(g2d, p1, p2);
-        }
+        if (p1 == null || p2 == null) return;
+
+        g2d.drawLine((int)p1.getX(), (int)p1.getY(), (int)p2.getX(), (int)p2.getY());
     }
 
-    private void desenharViaBidirecional(Graphics2D g2d, String no1, String no2) {
-        Point2D p1 = posicoes.get(no1);
-        Point2D p2 = posicoes.get(no2);
-
+    private void desenharViaBidirecional(Graphics2D g2d, String n1, String n2) {
+        Point2D p1 = posicoes.get(n1);
+        Point2D p2 = posicoes.get(n2);
         if (p1 == null || p2 == null) return;
 
         double dx = p2.getX() - p1.getX();
         double dy = p2.getY() - p1.getY();
-        double distancia = Math.sqrt(dx * dx + dy * dy);
+        double dist = Math.sqrt(dx*dx + dy*dy);
 
-        double perpX = -dy / distancia * ESPACAMENTO_VIA_DUPLA;
-        double perpY = dx / distancia * ESPACAMENTO_VIA_DUPLA;
+        double perpX = -dy/dist * ESPACAMENTO_VIA_DUPLA;
+        double perpY = dx/dist * ESPACAMENTO_VIA_DUPLA;
 
-        Point2D p1a = new Point2D.Double(p1.getX() + perpX, p1.getY() + perpY);
-        Point2D p2a = new Point2D.Double(p2.getX() + perpX, p2.getY() + perpY);
+        Point2D a1 = new Point2D.Double(p1.getX() + perpX, p1.getY() + perpY);
+        Point2D a2 = new Point2D.Double(p2.getX() + perpX, p2.getY() + perpY);
 
-        g2d.drawLine((int) p1a.getX(), (int) p1a.getY(),
-                (int) p2a.getX(), (int) p2a.getY());
-        desenharSeta(g2d, p1a, p2a);
+        g2d.drawLine((int)a1.getX(), (int)a1.getY(), (int)a2.getX(), (int)a2.getY());
 
-        Point2D p1b = new Point2D.Double(p1.getX() - perpX, p1.getY() - perpY);
-        Point2D p2b = new Point2D.Double(p2.getX() - perpX, p2.getY() - perpY);
+        Point2D b1 = new Point2D.Double(p1.getX() - perpX, p1.getY() - perpY);
+        Point2D b2 = new Point2D.Double(p2.getX() - perpX, p2.getY() - perpY);
 
-        g2d.drawLine((int) p1b.getX(), (int) p1b.getY(),
-                (int) p2b.getX(), (int) p2b.getY());
-        desenharSeta(g2d, p2b, p1b);
-    }
-
-    private void desenharSeta(Graphics2D g2d, Point2D origem, Point2D destino) {
-        double dx = destino.getX() - origem.getX();
-        double dy = destino.getY() - origem.getY();
-        double angulo = Math.atan2(dy, dx);
-
-        int tamanhoSeta = 10;
-
-        int x = (int) (origem.getX() + dx * 0.7);
-        int y = (int) (origem.getY() + dy * 0.7);
-
-        int x1 = (int) (x - tamanhoSeta * Math.cos(angulo - Math.PI / 6));
-        int y1 = (int) (y - tamanhoSeta * Math.sin(angulo - Math.PI / 6));
-
-        int x2 = (int) (x - tamanhoSeta * Math.cos(angulo + Math.PI / 6));
-        int y2 = (int) (y - tamanhoSeta * Math.sin(angulo + Math.PI / 6));
-
-        g2d.drawLine(x, y, x1, y1);
-        g2d.drawLine(x, y, x2, y2);
+        g2d.drawLine((int)b1.getX(), (int)b1.getY(), (int)b2.getX(), (int)b2.getY());
     }
 
     private void desenharNos(Graphics2D g2d) {
-        g2d.setFont(UIManager.getFont("Label.font"));
 
-        desenharNo(g2d, "E1", new Color(76, 175, 80), "E1");
-        desenharNo(g2d, "E2", new Color(76, 175, 80), "E2");
-        desenharNo(g2d, "E3", new Color(76, 175, 80), "E3");
+        desenharNo(g2d, "E1", new Color(76,175,80));
+        desenharNo(g2d, "E2", new Color(76,175,80));
+        desenharNo(g2d, "E3", new Color(76,175,80));
 
-        Color corCruzamento = new Color(33, 150, 243);
+        Color azul = new Color(33,150,243);
 
-        desenharNo(g2d, "Cr1", corCruzamento, "Cr1");
-        desenharNo(g2d, "Cr2", corCruzamento, "Cr2");
-        desenharNo(g2d, "Cr3", corCruzamento, "Cr3");
-        desenharNo(g2d, "Cr4", corCruzamento, "Cr4");
-        desenharNo(g2d, "Cr5", corCruzamento, "Cr5");
+        desenharNo(g2d, "Cr1", azul);
+        desenharNo(g2d, "Cr2", azul);
+        desenharNo(g2d, "Cr3", azul);
+        desenharNo(g2d, "Cr4", azul);
+        desenharNo(g2d, "Cr5", azul);
 
-        desenharNo(g2d, "S", new Color(244, 67, 54), "S");
+        desenharNo(g2d, "S", new Color(244,67,54));
     }
 
-    private void desenharNo(Graphics2D g2d, String id, Color cor, String label) {
+    private void desenharNo(Graphics2D g2d, String id, Color cor) {
         Point2D pos = posicoes.get(id);
         if (pos == null) return;
 
-        int x = (int) pos.getX() - LARGURA_CRUZAMENTO / 2;
-        int y = (int) pos.getY() - ALTURA_CRUZAMENTO / 2;
+        int x = (int)pos.getX() - LARGURA_CRUZAMENTO/2;
+        int y = (int)pos.getY() - ALTURA_CRUZAMENTO/2;
 
         g2d.setColor(cor);
-        g2d.fillRoundRect(x, y, LARGURA_CRUZAMENTO, ALTURA_CRUZAMENTO, 10, 10);
+        g2d.fillRoundRect(x,y,LARGURA_CRUZAMENTO,ALTURA_CRUZAMENTO,10,10);
 
         g2d.setColor(cor.darker());
-        g2d.drawRoundRect(x, y, LARGURA_CRUZAMENTO, ALTURA_CRUZAMENTO, 10, 10);
+        g2d.drawRoundRect(x,y,LARGURA_CRUZAMENTO,ALTURA_CRUZAMENTO,10,10);
 
-        // 👉 TEXTO A BRANCO
         g2d.setColor(Color.WHITE);
-
         FontMetrics fm = g2d.getFontMetrics();
-        int textWidth = fm.stringWidth(label);
+        int w = fm.stringWidth(id);
 
-        int textX = x + (LARGURA_CRUZAMENTO - textWidth) / 2;
-        int textY = y + (ALTURA_CRUZAMENTO + fm.getAscent()) / 2 - 2;
-
-        g2d.drawString(label, textX, textY);
+        g2d.drawString(id, x + (LARGURA_CRUZAMENTO-w)/2, y + ALTURA_CRUZAMENTO/2 + fm.getAscent()/2);
     }
 
     private void desenharSemaforos(Graphics2D g2d) {
-        for (Map.Entry<String, Point2D> entry : posicoesSemaforos.entrySet()) {
+        for (var entry : posicoesSemaforos.entrySet()) {
 
             String chave = entry.getKey();
             Point2D pos = entry.getValue();
             boolean verde = estadosSemaforos.getOrDefault(chave, false);
 
-            int x = (int) pos.getX() - TAMANHO_SEMAFORO / 2;
-            int y = (int) pos.getY() - TAMANHO_SEMAFORO / 2;
+            int x = (int)pos.getX() - TAMANHO_SEMAFORO/2;
+            int y = (int)pos.getY() - TAMANHO_SEMAFORO/2;
 
-            // Fundo no estilo OneDark
             g2d.setColor(UIManager.getColor("Panel.background"));
-            g2d.fillOval(x - 4, y - 4, TAMANHO_SEMAFORO + 8, TAMANHO_SEMAFORO + 8);
+            g2d.fillOval(x-3,y-3,TAMANHO_SEMAFORO+6,TAMANHO_SEMAFORO+6);
 
-            // Semáforo
-            Color cor = verde ? new Color(76, 175, 80) : new Color(244, 67, 54);
-            g2d.setColor(cor);
-            g2d.fillOval(x, y, TAMANHO_SEMAFORO, TAMANHO_SEMAFORO);
+            g2d.setColor(verde ? new Color(76,175,80) : new Color(244,67,54));
+            g2d.fillOval(x,y,TAMANHO_SEMAFORO,TAMANHO_SEMAFORO);
 
             g2d.setColor(Color.DARK_GRAY);
-            g2d.drawOval(x, y, TAMANHO_SEMAFORO, TAMANHO_SEMAFORO);
+            g2d.drawOval(x,y,TAMANHO_SEMAFORO,TAMANHO_SEMAFORO);
         }
     }
 
     private void desenharVeiculos(Graphics2D g2d) {
-        for (VeiculoNoMapa veiculo : veiculosEmTransito) {
+        for (VeiculoNoMapa v : veiculosEmTransito) {
 
-            Point2D pos = veiculo.getPosicaoAtual();
+            Point2D pos = v.getPosicaoAtual();
+            int x = (int)pos.getX() - TAMANHO_VEICULO/2;
+            int y = (int)pos.getY() - TAMANHO_VEICULO/2;
 
-            int x = (int) pos.getX() - TAMANHO_VEICULO / 2;
-            int y = (int) pos.getY() - TAMANHO_VEICULO / 2;
-
-            g2d.setColor(veiculo.getCor());
-            g2d.fillOval(x, y, TAMANHO_VEICULO, TAMANHO_VEICULO);
+            g2d.setColor(v.getCor());
+            g2d.fillOval(x,y,TAMANHO_VEICULO,TAMANHO_VEICULO);
 
             g2d.setColor(Color.BLACK);
-            g2d.drawOval(x, y, TAMANHO_VEICULO, TAMANHO_VEICULO);
+            g2d.drawOval(x,y,TAMANHO_VEICULO,TAMANHO_VEICULO);
 
-            if (veiculo.isParado()) {
+            if (v.isParado()) {
                 g2d.setColor(Color.RED);
-                g2d.drawRect(x - 2, y - 2, TAMANHO_VEICULO + 4, TAMANHO_VEICULO + 4);
+                g2d.drawRect(x-2,y-2,TAMANHO_VEICULO+4,TAMANHO_VEICULO+4);
             }
         }
     }
@@ -366,126 +370,22 @@ public class PainelMapa extends JPanel {
         g2d.setFont(UIManager.getFont("Label.font"));
         g2d.setColor(UIManager.getColor("Label.foreground"));
 
-        int largura = getWidth();
-        int altura = getHeight();
-        int margemInferior = 20;
+        int y = getHeight() - 20;
 
-        int y = altura - margemInferior;
-
-        int espacamento = 90;
-        int larguraLegenda = 0;
-
-        // Medir comprimento do texto "Legenda:"
-        String txtLegenda = "Legenda:";
-        int larguraTextoLegenda = g2d.getFontMetrics().stringWidth(txtLegenda);
-
-        larguraLegenda = larguraTextoLegenda + 20 + 3 * espacamento;
-
-        // Calcular X inicial para centrar tudo
-        int x = (largura - larguraLegenda) / 2;
-
-        // Desenhar "Legenda:"
-        g2d.drawString(txtLegenda, x, y);
-
-        // Ponto inicial após texto
-        int xItens = x + larguraTextoLegenda + 20;
-
-        // Desenhar os itens
-        desenharItemLegenda(g2d, xItens, y, new Color(255, 193, 7), "Mota");
-        desenharItemLegenda(g2d, xItens + espacamento, y, new Color(33, 150, 243), "Carro");
-        desenharItemLegenda(g2d, xItens + espacamento * 2, y, new Color(130, 109, 56), "Camião");
+        desenharItemLegenda(g2d, 50,  y, new Color(255,193,7), "Mota");
+        desenharItemLegenda(g2d, 150, y, new Color(33,150,243), "Carro");
+        desenharItemLegenda(g2d, 250, y, new Color(130,109,56), "Camião");
     }
 
     private void desenharItemLegenda(Graphics2D g2d, int x, int y, Color cor, String label) {
+
         g2d.setColor(UIManager.getColor("Panel.background"));
-        g2d.fillRect(x - 2, y - 12, 20, 20);
+        g2d.fillRect(x-2, y-12, 20, 20);
 
         g2d.setColor(cor);
-        g2d.fillOval(x, y - 6, 8, 8);
+        g2d.fillOval(x, y-6, 8, 8);
 
         g2d.setColor(UIManager.getColor("Label.foreground"));
-        g2d.drawString(label, x + 12, y);
+        g2d.drawString(label, x+12, y);
     }
-
-    private void criarVeiculo(String id, String tipo, String origem, String destino) {
-        if (veiculosPorId.containsKey(id)) return;
-
-        Point2D posOrigem = posicoes.get(origem);
-        Point2D posDestino = posicoes.get(destino);
-
-        if (posOrigem != null && posDestino != null) {
-
-            Point2D[] posicoesAjustadas = calcularPosicoesAjustadas(origem, destino);
-
-            String chaveSemaforo = destino + "_" + origem + "-" + destino;
-            Point2D posSemaforo = posicoesSemaforos.get(chaveSemaforo);
-
-            VeiculoNoMapa veiculo = new VeiculoNoMapa(
-                    id, tipo, posOrigem, posDestino, posSemaforo,
-                    chaveSemaforo, posicoesAjustadas[0], posicoesAjustadas[1]
-            );
-
-            veiculosEmTransito.add(veiculo);
-            veiculosPorId.put(id, veiculo);
-        }
-    }
-
-    private void atualizarDestino(String idVeiculo, String origem, String destino) {
-        VeiculoNoMapa veiculo = veiculosPorId.get(idVeiculo);
-        if (veiculo == null) return;
-
-        Point2D posDestino = posicoes.get(destino);
-        if (posDestino == null) return;
-
-        Point2D posOrigem = posicoes.get(origem);
-        Point2D[] posicoesAjustadas = calcularPosicoesAjustadas(origem, destino);
-
-        String chaveSemaforo = destino + "_" + origem + "-" + destino;
-        Point2D posSemaforo = posicoesSemaforos.get(chaveSemaforo);
-
-        veiculo.adicionarProximoSegmento(
-                origem, destino, posOrigem, posDestino,
-                chaveSemaforo, posSemaforo,
-                posicoesAjustadas[0], posicoesAjustadas[1]
-        );
-    }
-
-    private Point2D[] calcularPosicoesAjustadas(String origem, String destino) {
-        Point2D p1 = posicoes.get(origem);
-        Point2D p2 = posicoes.get(destino);
-
-        if (p1 == null || p2 == null) return new Point2D[]{p1, p2};
-
-        boolean isBidirecional =
-                (origem.equals("Cr1") && destino.equals("Cr2")) ||
-                        (origem.equals("Cr2") && destino.equals("Cr1")) ||
-                        (origem.equals("Cr2") && destino.equals("Cr3")) ||
-                        (origem.equals("Cr3") && destino.equals("Cr2"));
-
-        if (!isBidirecional) return new Point2D[]{p1, p2};
-
-        double dx = p2.getX() - p1.getX();
-        double dy = p2.getY() - p1.getY();
-        double distancia = Math.sqrt(dx*dx + dy*dy);
-
-        double perpX = -dy / distancia * ESPACAMENTO_VIA_DUPLA;
-        double perpY = dx / distancia * ESPACAMENTO_VIA_DUPLA;
-
-        Point2D p1Adj = new Point2D.Double(p1.getX() + perpX, p1.getY() + perpY);
-        Point2D p2Adj = new Point2D.Double(p2.getX() + perpX, p2.getY() + perpY);
-
-        return new Point2D[]{p1Adj, p2Adj};
-    }
-
-    private static final Map<String, List<String>> vizinhosValidos = Map.of(
-            "E1", List.of("Cr1"),
-            "E2", List.of("Cr2"),
-            "E3", List.of("Cr3"),
-            "Cr1", List.of("E1", "Cr2", "Cr4"),
-            "Cr2", List.of("E2", "Cr1", "Cr3", "Cr5"),
-            "Cr3", List.of("E3", "Cr2", "S"),
-            "Cr4", List.of("Cr1", "Cr5"),
-            "Cr5", List.of("Cr2", "Cr4", "S"),
-            "S", List.of("Cr3", "Cr5")
-    );
 }

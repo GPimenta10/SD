@@ -10,12 +10,12 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.Map;
 
+import com.google.gson.JsonArray;
+
 public class DashboardFrame extends JFrame implements GestorEstatisticas.OuvinteEstatisticas {
 
-    // Referência ao gestor central de estatísticas
     private final GestorEstatisticas gestor;
 
-    // Painéis principais
     private final PainelEstatsGlobais painelEstatsGlobais;
     private final PainelMapa painelMapa;
     private final PainelEstatsSaida painelEstatsSaida;
@@ -39,9 +39,6 @@ public class DashboardFrame extends JFrame implements GestorEstatisticas.Ouvinte
         setLayout(new BorderLayout(3, 3));
         getContentPane().setBackground(BG);
 
-        // ======================
-        // INSTANCIAR PAINÉIS
-        // ======================
         painelEstatsGlobais = new PainelEstatsGlobais();
         painelMapa = new PainelMapa();
         painelEstatsSaida = new PainelEstatsSaida();
@@ -54,9 +51,7 @@ public class DashboardFrame extends JFrame implements GestorEstatisticas.Ouvinte
         painelMapa.setDashboard(this);
         DashLogger.inicializar(painelLogs);
 
-        // ======================
-        // COLUNA ESQUERDA
-        // ======================
+        // Coluna esquerda
         painelEstatsSaida.setPreferredSize(new Dimension(0, 200));
         painelResumoCruzamento.setPreferredSize(new Dimension(0, 200));
 
@@ -64,9 +59,7 @@ public class DashboardFrame extends JFrame implements GestorEstatisticas.Ouvinte
         colunaEsquerda.add(painelResumoCruzamento, BorderLayout.NORTH);
         colunaEsquerda.add(painelEstatsSaida, BorderLayout.CENTER);
 
-        // ======================
-        // COLUNA CENTRAL
-        // ======================
+        // Coluna centro
         painelMapa.setPreferredSize(new Dimension(400, 500));
         painelEstatsGlobais.setPreferredSize(new Dimension(0, 125));
 
@@ -74,9 +67,7 @@ public class DashboardFrame extends JFrame implements GestorEstatisticas.Ouvinte
         colunaCentro.add(painelMapa, BorderLayout.CENTER);
         colunaCentro.add(painelEstatsGlobais, BorderLayout.SOUTH);
 
-        // ======================
-        // COLUNA DIREITA
-        // ======================
+        // Coluna direita
         JScrollPane scrollCruzEstats = criarScroll(painelEstatsCruzamentos);
         painelInfoSaidaVeiculos.setPreferredSize(new Dimension(0, 300));
 
@@ -84,9 +75,7 @@ public class DashboardFrame extends JFrame implements GestorEstatisticas.Ouvinte
         colunaDireita.add(painelInfoSaidaVeiculos, BorderLayout.NORTH);
         colunaDireita.add(scrollCruzEstats, BorderLayout.CENTER);
 
-        // ======================
-        // PAINEL INFERIOR
-        // ======================
+        // Painel inferior
         painelLogs.setPreferredSize(new Dimension(700, 180));
         painelServidores.setPreferredSize(new Dimension(500, 180));
 
@@ -99,9 +88,6 @@ public class DashboardFrame extends JFrame implements GestorEstatisticas.Ouvinte
         painelInferior.add(painelLogs);
         painelInferior.add(painelServidores);
 
-        // ======================
-        // ADD AO FRAME
-        // ======================
         add(criarComMargem(colunaEsquerda, 10, 3), BorderLayout.WEST);
         add(criarComMargem(colunaCentro, 3, 3), BorderLayout.CENTER);
         add(criarComMargem(colunaDireita, 3, 10), BorderLayout.EAST);
@@ -111,16 +97,18 @@ public class DashboardFrame extends JFrame implements GestorEstatisticas.Ouvinte
         setVisible(true);
     }
 
-    // ================================
-    //     CALLBACKS DO GESTOR
-    // ================================
+    // ==================================================
+    // CALLBACKS DO GESTOR
+    // ==================================================
+
     @Override
     public void onEstatisticasGlobaisAtualizadas(GestorEstatisticas.EstatisticasGlobais globais) {
         SwingUtilities.invokeLater(() -> painelEstatsGlobais.atualizar(globais));
     }
 
     @Override
-    public void onEstatisticasCruzamentoAtualizadas(String cruzamento, Map<String, GestorEstatisticas.EstatisticasFila> filas) {
+    public void onEstatisticasCruzamentoAtualizadas(String cruzamento,
+                                                    Map<String, GestorEstatisticas.EstatisticasFila> filas) {
         SwingUtilities.invokeLater(() ->
                 painelEstatsCruzamentos.atualizarCruzamento(cruzamento, filas)
         );
@@ -136,12 +124,17 @@ public class DashboardFrame extends JFrame implements GestorEstatisticas.Ouvinte
         SwingUtilities.invokeLater(() -> painelResumoCruzamento.atualizar(resumo));
     }
 
+    // ==================================================
+    // HELPERS DE LAYOUT
+    // ==================================================
+
     private JScrollPane criarScroll(JComponent componente) {
         JScrollPane scroll = new JScrollPane(componente);
 
         DashboardUIUtils.configurarScroll(scroll);
         scroll.getVerticalScrollBar().setUI(new MinimalScrollBarUI());
         scroll.getHorizontalScrollBar().setUI(new MinimalScrollBarUI());
+
         scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
@@ -169,8 +162,9 @@ public class DashboardFrame extends JFrame implements GestorEstatisticas.Ouvinte
     }
 
     // ==================================================
-    //                     GETTERS
+    // GETTERS
     // ==================================================
+
     public PainelEstatsGlobais getPainelEstatisticas() { return painelEstatsGlobais; }
     public PainelMapa getPainelMapa() { return painelMapa; }
     public PainelEstatsSaida getPainelEstatisticasTipo() { return painelEstatsSaida; }

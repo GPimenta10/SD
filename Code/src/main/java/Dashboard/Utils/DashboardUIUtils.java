@@ -1,9 +1,12 @@
 package Dashboard.Utils;
 
+import com.google.gson.JsonArray;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
+import java.util.List;
 
 public class DashboardUIUtils {
 
@@ -58,7 +61,6 @@ public class DashboardUIUtils {
                 Component c = super.getTableCellRendererComponent(
                         table, value, isSelected, hasFocus, row, col);
 
-                // Não mexer em cores — deixamos o FlatLaf decidir
                 setHorizontalAlignment(CENTER);
                 return c;
             }
@@ -79,5 +81,16 @@ public class DashboardUIUtils {
     public static void estilizarTextoPainel(JComponent comp) {
         comp.setFont(FONTE_CONSOLE);
         comp.setForeground(new Color(255, 255, 255));
+    }
+
+    // ========================
+    //   JSON UTILS (NOVO)
+    // ========================
+    public static JsonArray toJsonArray(List<String> lista) {
+        JsonArray arr = new JsonArray();
+        for (String s : lista) {
+            arr.add(s);
+        }
+        return arr;
     }
 }
