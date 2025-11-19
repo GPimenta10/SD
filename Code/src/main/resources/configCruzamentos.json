@@ -1,0 +1,148 @@
+{
+  "dashboard": {
+    "portaServidor": 6000
+  },
+  "saida": {
+    "portaServidor": 5999,
+    "ipDashboard": "localhost",
+    "portaDashboard": 6000
+  },
+  "cruzamentos": [
+    {
+      "nome": "Cr1",
+      "portaServidor": 5001,
+      "ipDashboard": "localhost",
+      "portaDashboard": 6000,
+      "ligacoes": [
+        {
+          "origem": "E1",
+          "destino": "Cr4",
+          "ip": "localhost",
+          "porta": 5004
+        },
+        {
+          "origem": "E1",
+          "destino": "Cr2",
+          "ip": "localhost",
+          "porta": 5002
+        },
+        {
+          "origem": "Cr2",
+          "destino": "Cr4",
+          "ip": "localhost",
+          "porta": 5004
+        }
+      ]
+    },
+    {
+      "nome": "Cr2",
+      "portaServidor": 5002,
+      "ipDashboard": "localhost",
+      "portaDashboard": 6000,
+      "ligacoes": [
+        {
+          "origem": "E2",
+          "destino": "Cr1",
+          "ip": "localhost",
+          "porta": 5001
+        },
+        {
+          "origem": "E2",
+          "destino": "Cr5",
+          "ip": "localhost",
+          "porta": 5005
+        },
+        {
+          "origem": "E2",
+          "destino": "Cr3",
+          "ip": "localhost",
+          "porta": 5003
+        },
+        {
+          "origem": "Cr1",
+          "destino": "Cr3",
+          "ip": "localhost",
+          "porta": 5003
+        },
+        {
+          "origem": "Cr1",
+          "destino": "Cr5",
+          "ip": "localhost",
+          "porta": 5005
+        },
+        {
+          "origem": "Cr3",
+          "destino": "Cr1",
+          "ip": "localhost",
+          "porta": 5001
+        }, 
+        {
+          "origem": "Cr3",
+          "destino": "Cr5",
+          "ip": "localhost",
+          "porta": 5005
+        }
+      ]
+    },
+    {
+      "nome": "Cr3",
+      "portaServidor": 5003,
+      "ipDashboard": "localhost",
+      "portaDashboard": 6000,
+      "ligacoes": [
+        {
+          "origem": "E3",
+          "destino": "S",
+          "ip": "localhost",
+          "porta": 5999
+        },
+        {
+          "origem": "Cr2",
+          "destino": "S",
+          "ip": "localhost",
+          "porta": 5999
+        },
+        {
+          "origem": "E3",
+          "destino": "Cr2",
+          "ip": "localhost",
+          "porta": 5002
+        }
+      ]
+    },
+    {
+      "nome": "Cr4",
+      "portaServidor": 5004,
+      "ipDashboard": "localhost",
+      "portaDashboard": 6000,
+      "ligacoes": [
+        {
+          "origem": "Cr1",
+          "destino": "Cr5",
+          "ip": "localhost",
+          "porta": 5005
+        }
+      ]
+    },
+    {
+      "nome": "Cr5",
+      "portaServidor": 5005,
+      "ipDashboard": "localhost",
+      "portaDashboard": 6000,
+      "ligacoes": [
+        {
+          "origem": "Cr2",
+          "destino": "S",
+          "ip": "localhost",
+          "porta": 5999
+        },
+        {
+          "origem": "Cr4",
+          "destino": "S",
+          "ip": "localhost",
+          "porta": 5999
+        }
+      ]
+    }
+  ]
+}
