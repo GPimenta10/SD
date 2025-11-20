@@ -15,9 +15,9 @@
 ## Melhorias
 - [ ] Rever import das configs. Deve-se importar o endereço IP e Porta do ficheiro configMapa.json (Pode ficar para último)
       
-- [ ] Dashboard.Utils.EventoMovimento. Classe simples que poderia estar em Dashboard ou Dashboard.Paineis. É específica do mapa, não é utilitário genérico. Não está a ser usada, era para tratar daquele stress de estar mais lento o mapa que o código, a meu ver pode ser eliminada bem como toda a lógica associada à mesma (é preciso ver noutras classes se existem métodos relativos a isto).
+- [x] ~~Dashboard.Utils.EventoMovimento. Classe simples que poderia estar em Dashboard ou Dashboard.Paineis. É específica do mapa, não é utilitário genérico. Não está a ser usada, era para tratar daquele stress de estar mais lento o mapa que o código, a meu ver pode ser eliminada bem como toda a lógica associada à mesma (é preciso ver noutras classes se existem métodos relativos a isto).~~
       
-- [ ] ~~GestorEstatisticas em Utils. É específico do Dashboard, não é utilitário genérico. Sugestão: Mover para Dashboard.Gestao ou Dashboard (confirmar se é só mover, se for pode-se dar check).~~
+- [x] ~~GestorEstatisticas em Utils. É específico do Dashboard, não é utilitário genérico. Sugestão: Mover para Dashboard.Gestao ou Dashboard (confirmar se é só mover, se for pode-se dar check).~~
       
 - [x] ~~Cruzamento.java com problema: Método gerarEstatisticas() com muita responsabilidade:~~
       
