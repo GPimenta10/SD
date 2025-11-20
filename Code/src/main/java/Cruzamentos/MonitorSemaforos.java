@@ -1,0 +1,46 @@
+package Cruzamentos;
+
+/**
+ *
+ */
+public class MonitorSemaforos {
+    private int turno = 0;
+    private final int total;
+
+    /**
+     * Construtor da classe
+     *
+     * @param total
+     */
+    public MonitorSemaforos(int total) {
+        this.total = total;
+    }
+
+    /**
+     *
+     *
+     * @param id
+     * @throws InterruptedException
+     */
+    public synchronized void esperarVez(int id) throws InterruptedException {
+        while (turno != id)
+            wait();
+    }
+
+    /**
+     *
+     *
+     */
+    public synchronized void proximaVez() {
+        turno = (turno + 1) % total;
+        notifyAll();
+    }
+
+    /**
+     *
+     *
+     */
+    public synchronized void acordarTodos() {
+        notifyAll();
+    }
+}
