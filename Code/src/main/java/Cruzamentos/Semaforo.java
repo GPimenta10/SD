@@ -1,5 +1,6 @@
 package Cruzamentos;
 
+import Dashboard.Estatisticas.EstatisticaSemaforo;
 import Veiculo.Veiculo;
 
 /**
@@ -73,10 +74,26 @@ public class Semaforo extends Thread {
     /**
      * Obter tamanho da fila
      *
-     * @return O Tamnho atual da fila (nº de veiculos)
+     * @return O tamanho atual da fila (nº de veiculos)
      */
     public int getTamanhoFila() {
         return filaVeiculos.getTamanhoAtual();
+    }
+
+    /**
+     *
+     *
+     * @param destino
+     * @return
+     */
+    public EstatisticaSemaforo getEstatistica(String destino) {
+        return new EstatisticaSemaforo(
+                semaforoId,
+                estadoVerde ? "VERDE" : "VERMELHO",
+                getTamanhoFila(),
+                origem,
+                destino
+        );
     }
 
     /**
@@ -95,16 +112,12 @@ public class Semaforo extends Thread {
 
                 estadoVerde = true;
 
-                // System.out.println("[Semaforo " + semaforoId + "] VERDE");
-
                 long inicioVerde = System.currentTimeMillis();
 
                 while (semaforoAtivo && (System.currentTimeMillis() - inicioVerde) < duracaoSinalVerdeMs) {
                     Veiculo veiculo = filaVeiculos.removerSeDisponivel();
 
                     if (veiculo != null) {
-                        // System.out.println("[Semaforo " + semaforoId + "] Veículo passou: " + veiculo.getId());
-
                         // Envia o veículo para o próximo cruzamento
                         cruzamentoAtual.enviarVeiculoAposPassarSemaforo(veiculo, filaVeiculos);
 
@@ -120,19 +133,14 @@ public class Semaforo extends Thread {
 
                 estadoVerde = false;
 
-                // System.out.println("[Semaforo " + semaforoId + "] VERMELHO");
-
-                try { Thread.sleep(duracaoSinalVermelhoMs); }
-                catch (InterruptedException ignored) { }
+                try {
+                    Thread.sleep(duracaoSinalVermelhoMs);
+                } catch (InterruptedException ignored) { }
 
                 // Passa o controlo ao próximo semáforo
                 monitorSemaforos.proximaVez();
             }
-        } catch (InterruptedException ignored) {
-            // ignorar interrupções quando o semáforo é encerrado
-        }
-
-        // System.out.println("[Semaforo " + semaforoId + "] Terminado.");
+        } catch (InterruptedException ignored) {}
     }
 
     /**

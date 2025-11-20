@@ -1,4 +1,4 @@
-package Utils;
+package Dashboard.Estatisticas;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;

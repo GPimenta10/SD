@@ -1,12 +1,12 @@
 package Cruzamentos;
 
-import Dashboard.Logs.TipoLog;
-import Utils.ConfigLoader;
-import Utils.EnviarLogs;
-
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+
+import Dashboard.Logs.TipoLog;
+import Logging.LogClienteDashboard;
+import Utils.ConfigLoader;
 
 /**
  * Processo principal para iniciar um cruzamento específico do sistema de tráfego.
@@ -40,42 +40,42 @@ public class CruzamentoMain {
         }
 
         String nomeCruzamento = args[0];
-        EnviarLogs.definirNomeProcesso(nomeCruzamento);
-        EnviarLogs.enviar(TipoLog.SISTEMA, "Processo Cruzamento " + nomeCruzamento + " iniciado");
+        LogClienteDashboard.definirNomeProcesso(nomeCruzamento);
+        LogClienteDashboard.enviar(TipoLog.SISTEMA, "Processo Cruzamento " + nomeCruzamento + " iniciado");
 
         try {
-            // Carrega configuração do cruzamento
             JsonObject configCruzamento = carregarConfiguracao(nomeCruzamento);
 
-            // Extrai parâmetros da configuração
             String nome = configCruzamento.get("nome").getAsString();
+            
+            // IMPORTANTE: Ler o IP da configuração
+            String ipServidor = configCruzamento.has("ipServidor") 
+                    ? configCruzamento.get("ipServidor").getAsString() 
+                    : "localhost";
+                    
             int portaServidor = configCruzamento.get("portaServidor").getAsInt();
             String ipDashboard = configCruzamento.get("ipDashboard").getAsString();
             int portaDashboard = configCruzamento.get("portaDashboard").getAsInt();
 
-            EnviarLogs.enviar(
+            LogClienteDashboard.enviar(
                     TipoLog.SISTEMA,
-                    String.format("Configuração carregada para %s: servidor=%d, dashboard=%s:%d",
-                            nome, portaServidor, ipDashboard, portaDashboard)
+                    String.format("Configuração carregada para %s: servidor=%s:%d, dashboard=%s:%d",
+                            nome, ipServidor, portaServidor, ipDashboard, portaDashboard)
             );
 
-            // Cria e configura o cruzamento
-            Cruzamento cruzamento = new Cruzamento(nome, portaServidor, ipDashboard, portaDashboard);
+            // Passar IP para o construtor
+            Cruzamento cruzamento = new Cruzamento(nome, ipServidor, portaServidor, ipDashboard, portaDashboard);
             carregarLigacoes(cruzamento, configCruzamento, nome);
 
-            // Inicia o cruzamento
             cruzamento.iniciar();
-            EnviarLogs.enviar(TipoLog.SISTEMA, "Cruzamento " + nome + " ativo e operacional");
+            LogClienteDashboard.enviar(TipoLog.SISTEMA, "Cruzamento " + nome + " ativo e operacional");
 
-            // Regista shutdown hook
             registarShutdownHook(cruzamento, nome);
-
-            // Mantém processo ativo
             manterProcessoAtivo();
 
         } catch (Exception e) {
             System.err.println("[CruzamentoMain] ERRO FATAL: " + e.getMessage());
-            EnviarLogs.enviar(TipoLog.ERRO, "Erro fatal: " + e.getMessage());
+            LogClienteDashboard.enviar(TipoLog.ERRO, "Erro fatal: " + e.getMessage());
             e.printStackTrace();
             System.exit(1);
         }
@@ -95,7 +95,7 @@ public class CruzamentoMain {
 
         if (config == null) {
             System.err.printf("[CruzamentoMain] Cruzamento '%s' não encontrado!%n", nomeCruzamento);
-            EnviarLogs.enviar(TipoLog.ERRO, "Cruzamento '" + nomeCruzamento + "' não existe no configMapa.json");
+            LogClienteDashboard.enviar(TipoLog.ERRO, "Cruzamento '" + nomeCruzamento + "' não existe no configMapa.json");
             System.exit(1);
         }
 
@@ -114,18 +114,18 @@ public class CruzamentoMain {
      */
     private static void carregarLigacoes(Cruzamento cruzamento, JsonObject config, String nome) {
         if (!config.has("ligacoes")) {
-            EnviarLogs.enviar(TipoLog.AVISO, "Cruzamento " + nome + " não tem ligações definidas");
+            LogClienteDashboard.enviar(TipoLog.AVISO, "Cruzamento " + nome + " não tem ligações definidas");
             return;
         }
 
         JsonArray ligacoes = config.getAsJsonArray("ligacoes");
 
         if (ligacoes.size() == 0) {
-            EnviarLogs.enviar(TipoLog.AVISO, "Cruzamento " + nome + " não tem ligações definidas");
+            LogClienteDashboard.enviar(TipoLog.AVISO, "Cruzamento " + nome + " não tem ligações definidas");
             return;
         }
 
-        EnviarLogs.enviar(
+        LogClienteDashboard.enviar(
                 TipoLog.SISTEMA,
                 String.format("Cruzamento %s — %d ligações carregadas", nome, ligacoes.size())
         );
@@ -153,9 +153,9 @@ public class CruzamentoMain {
      */
     private static void registarShutdownHook(Cruzamento cruzamento, String nome) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            EnviarLogs.enviar(TipoLog.SISTEMA, "A encerrar cruzamento " + nome);
+            LogClienteDashboard.enviar(TipoLog.SISTEMA, "A encerrar cruzamento " + nome);
             cruzamento.parar();
-            EnviarLogs.enviar(TipoLog.SISTEMA, "Cruzamento " + nome + " encerrado");
+            LogClienteDashboard.enviar(TipoLog.SISTEMA, "Cruzamento " + nome + " encerrado");
         }));
     }
 

@@ -1,24 +1,29 @@
 package Dashboard.Logs;
 
+import Logging.LogSender;
 import Dashboard.Paineis.PainelLogs;
 import com.google.gson.Gson;
 
 import javax.swing.SwingUtilities;
-import java.io.PrintWriter;
-import java.net.Socket;
 
+/**
+ * Logger central do Dashboard.
+ *
+ * Responsabilidades:
+ *  - Se estiver a correr dentro do Dashboard, escreve diretamente no PainelLogs.
+ *  - Se for chamado por outro processo, delega o envio ao LogSender.
+ *
+ * Com esta refatorização, toda a lógica de envio por socket TCP foi removida
+ * desta classe, evitando duplicação com LogClienteDashboard.
+ */
 public class DashLogger {
 
     private static PainelLogs painelLogs = null;
-    private static final String IP_DASHBOARD = "localhost";
-    private static final int PORTA_DASHBOARD = 6000;
-
     private static String nomeProcesso = "Desconhecido";
-
     private static final Gson gson = new Gson();
 
     /**
-     * Apenas o Dashboard chama isto no arranque.
+     * Inicializado pelo próprio Dashboard no arranque.
      */
     public static void inicializar(PainelLogs painel) {
         painelLogs = painel;
@@ -26,7 +31,7 @@ public class DashLogger {
     }
 
     /**
-     * Cada processo (Cruzamento, Entrada, Saída) deve definir o próprio nome.
+     * Definir nome do processo remoto que enviará logs.
      */
     public static void definirNomeProcesso(String nome) {
         nomeProcesso = nome;
@@ -34,12 +39,12 @@ public class DashLogger {
 
     /**
      * Log universal:
-     *  - Se estiver no Dashboard → escreve no painel
-     *  - Se estiver noutro processo → envia JSON para o Dashboard
+     *  - Se estiver no Dashboard, escreve no painel.
+     *  - Caso contrário, delega o envio para o LogSender.
      */
     public static void log(TipoLog tipo, String msg) {
 
-        // Caso 1 → Dashboard
+        // Caso esteja no Dashboard → mostra na UI
         if (painelLogs != null) {
             System.out.println("[" + tipo + "] " + msg);
 
@@ -47,19 +52,12 @@ public class DashLogger {
             return;
         }
 
-        // Caso 2 → Processo remoto: enviar para Dashboard
-        try (Socket socket = new Socket(IP_DASHBOARD, PORTA_DASHBOARD);
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
-
-            var json = new java.util.HashMap<String, Object>();
-            json.put("tipo", "LOG");
-            json.put("nivel", tipo.name());
-            json.put("origem", nomeProcesso);
-            json.put("mensagem", msg);
-
-            out.println(gson.toJson(json));
-        } catch (Exception e) {
-            System.err.println("[FALHA ENVIO LOG] " + msg + " | Erro: " + e.getMessage());
-        }
+        // Caso contrário → enviar para Dashboard via LogSender
+        LogSender.enviar(
+                "LOG",
+                nomeProcesso,
+                tipo.name(),
+                msg
+        );
     }
 }

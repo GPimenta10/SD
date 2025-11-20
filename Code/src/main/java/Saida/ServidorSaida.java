@@ -1,24 +1,33 @@
 package Saida;
 
-import Rede.Servidor;
-import Rede.Mensagem;
-import Dashboard.Logs.TipoLog;
-import Utils.EnviarLogs;
-import Veiculo.Veiculo;
-import com.google.gson.Gson;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-public class ServidorSaida extends Servidor {
+import com.google.gson.Gson;
 
+import Dashboard.Logs.TipoLog;
+import Logging.LogClienteDashboard;
+import Rede.Mensagem;
+import Rede.Servidor;
+import Veiculo.Veiculo;
+
+/**
+ *
+ */
+public class ServidorSaida extends Servidor {
     private final Saida saida;
     private final Gson gson = new Gson();
 
-    public ServidorSaida(int porta, Saida saida) {
-        super(porta, "ServidorSaida");
+    /**
+     * Construtor da classe
+     *
+     * @param porta
+     * @param saida
+     */
+    public ServidorSaida(String ip, int porta, Saida saida) {
+        super(ip, porta, "ServidorSaida");
 
         if (saida == null) {
             throw new IllegalArgumentException("Instância de Saida não pode ser null");
@@ -28,30 +37,42 @@ public class ServidorSaida extends Servidor {
         setDaemon(true);
     }
 
+    /**
+     *
+     */
     @Override
     protected void onInicio() {
-        EnviarLogs.enviar(TipoLog.SISTEMA, "Servidor da Saída a escutar na porta " + porta);
+        LogClienteDashboard.enviar(TipoLog.SISTEMA, "Servidor da Saída a escutar em " + ip + ":" + porta);
     }
 
+    /**
+     *
+     *
+     * @param linha Linha JSON recebida
+     * @param leitor BufferedReader para ler mais dados se necessário
+     * @param escritor PrintWriter para enviar respostas
+     * @param socket Socket da conexão (para obter informações do cliente)
+     * @throws IOException
+     */
     @Override
     protected void tratarMensagem(String linha, BufferedReader leitor,
                                   PrintWriter escritor, Socket socket) throws IOException {
         Mensagem mensagem = Mensagem.fromJson(linha);
 
-        if ("VEICULO".equalsIgnoreCase(mensagem.getTipo())) {
-            Object objVeiculo = mensagem.getConteudo().get("veiculo");
+        if ("VEICULO".equalsIgnoreCase(mensagem.tipo())) {
+            Object objVeiculo = mensagem.conteudo().get("veiculo");
 
             if (objVeiculo == null) {
-                EnviarLogs.enviar(TipoLog.AVISO, "Mensagem de saída inválida: campo 'veiculo' ausente.");
+                LogClienteDashboard.enviar(TipoLog.AVISO, "Mensagem de saída inválida: campo 'veiculo' ausente.");
                 return;
             }
 
             Veiculo veiculo = gson.fromJson(gson.toJson(objVeiculo), Veiculo.class);
 
-            EnviarLogs.enviar(
+            LogClienteDashboard.enviar(
                     TipoLog.VEICULO,
                     "Veículo " + veiculo.getId() + " (" + veiculo.getTipo() +
-                            ") saiu do sistema via " + mensagem.getOrigem()
+                            ") saiu do sistema via " + mensagem.origem()
             );
 
             saida.registarVeiculo(veiculo);
@@ -66,7 +87,7 @@ public class ServidorSaida extends Servidor {
      */
     @Override
     protected void onErroProcessamento(IOException e, Socket socket) {
-        EnviarLogs.enviar(TipoLog.ERRO, "Erro ao processar ligação na Saída: " + e.getMessage());
+        LogClienteDashboard.enviar(TipoLog.ERRO, "Erro ao processar ligação na Saída: " + e.getMessage());
     }
 
     /**
@@ -76,7 +97,7 @@ public class ServidorSaida extends Servidor {
      */
     @Override
     protected void onErroInicializacao(IOException e) {
-        EnviarLogs.enviar(TipoLog.ERRO, "Erro no servidor da Saída: " + e.getMessage());
+        LogClienteDashboard.enviar(TipoLog.ERRO, "Erro no servidor da Saída: " + e.getMessage());
     }
 
     /**
@@ -85,7 +106,7 @@ public class ServidorSaida extends Servidor {
     @Override
     protected void onEncerramento() {
         if (!ativo) {
-            EnviarLogs.enviar(TipoLog.SISTEMA, "Servidor da Saída encerrado.");
+            LogClienteDashboard.enviar(TipoLog.SISTEMA, "Servidor da Saída encerrado.");
         }
     }
 }

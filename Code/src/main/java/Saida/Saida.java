@@ -1,12 +1,12 @@
 package Saida;
 
-import Dashboard.Logs.TipoLog;
-import Utils.EnviarLogs;
-import Veiculo.Veiculo;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import Dashboard.Logs.TipoLog;
+import Logging.LogClienteDashboard;
+import Veiculo.Veiculo;
 
 /**
  * Representa o ponto de saída do sistema de tráfego.
@@ -22,6 +22,7 @@ import java.util.List;
  */
 public class Saida {
 
+    private final String ipServidor;
     private final int portaServidor;
     private final String ipDashboard;
     private final int portaDashboard;
@@ -39,7 +40,7 @@ public class Saida {
      * @param portaDashboard Porta TCP do Dashboard
      * @throws IllegalArgumentException se os parâmetros forem inválidos
      */
-    public Saida(int portaServidor, String ipDashboard, int portaDashboard) {
+    public Saida(String ipServidor, int portaServidor, String ipDashboard, int portaDashboard) {
         if (portaServidor < 1 || portaServidor > 65535) {
             throw new IllegalArgumentException("Porta do servidor inválida");
         }
@@ -50,11 +51,13 @@ public class Saida {
             throw new IllegalArgumentException("IP do Dashboard não pode ser null ou vazio");
         }
 
+        this.ipServidor = (ipServidor == null || ipServidor.isEmpty()) ? "localhost" : ipServidor;
         this.portaServidor = portaServidor;
         this.ipDashboard = ipDashboard;
         this.portaDashboard = portaDashboard;
 
-        this.servidorSaida = new ServidorSaida(portaServidor, this);
+        // Passamos o IP para o servidor
+        this.servidorSaida = new ServidorSaida(this.ipServidor, portaServidor, this);
         this.clienteSaidaDash = new ClienteSaidaDash(ipDashboard, portaDashboard, this);
     }
 
@@ -76,10 +79,10 @@ public class Saida {
      *  Cliente para enviar estatísticas ao Dashboard
      */
     public void iniciar() {
-        EnviarLogs.enviar(
+        LogClienteDashboard.enviar(
                 TipoLog.SISTEMA,
-                String.format("Saída iniciada na porta %d (Dashboard: %s:%d)",
-                        portaServidor, ipDashboard, portaDashboard)
+                String.format("Saída iniciada em %s:%d (Dashboard: %s:%d)",
+                        ipServidor, portaServidor, ipDashboard, portaDashboard)
         );
 
         servidorSaida.start();
@@ -108,7 +111,7 @@ public class Saida {
 
         veiculosSaidos.add(veiculo);
 
-        EnviarLogs.enviar(TipoLog.VEICULO, String.format("Veículo %s (%s) saiu do sistema. Tempo total: %.2f s",
+        LogClienteDashboard.enviar(TipoLog.VEICULO, String.format("Veículo %s (%s) saiu do sistema. Tempo total: %.2f s",
                         veiculo.getId(), veiculo.getTipo(), tempoTotalSegundos)
         );
 
@@ -121,6 +124,6 @@ public class Saida {
     public void parar() {
         servidorSaida.pararServidor();
         clienteSaidaDash.parar();
-        EnviarLogs.enviar(TipoLog.SISTEMA, "Saída encerrada.");
+        LogClienteDashboard.enviar(TipoLog.SISTEMA, "Saída encerrada.");
     }
 }

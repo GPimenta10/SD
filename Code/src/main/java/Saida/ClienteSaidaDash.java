@@ -1,7 +1,7 @@
 package Saida;
 
 import Dashboard.Logs.TipoLog;
-import Utils.EnviarLogs;
+import Logging.LogClienteDashboard;
 import Veiculo.Veiculo;
 
 import com.google.gson.Gson;
@@ -67,7 +67,7 @@ public class ClienteSaidaDash extends Thread {
      */
     @Override
     public void run() {
-        EnviarLogs.enviar(
+        LogClienteDashboard.enviar(
                 TipoLog.SISTEMA,
                 String.format("Saída: comunicação com Dashboard iniciada em %s:%d", ipDashboard, portaDashboard)
         );
@@ -82,7 +82,7 @@ public class ClienteSaidaDash extends Thread {
             }
         }
 
-        EnviarLogs.enviar(TipoLog.SISTEMA, "Saída: comunicação com Dashboard encerrada.");
+        LogClienteDashboard.enviar(TipoLog.SISTEMA, "Saída: comunicação com Dashboard encerrada.");
     }
 
     /**
@@ -136,7 +136,7 @@ public class ClienteSaidaDash extends Thread {
 
         enviarJson(mensagem);
 
-        EnviarLogs.enviar( TipoLog.VEICULO, String.format("Veículo %s (%s) saiu do sistema. Tempo total: %.2f s", veiculo.getId(), veiculo.getTipo(), tempoTotal));
+        LogClienteDashboard.enviar( TipoLog.VEICULO, String.format("Veículo %s (%s) saiu do sistema. Tempo total: %.2f s", veiculo.getId(), veiculo.getTipo(), tempoTotal));
     }
 
     /**
@@ -154,7 +154,7 @@ public class ClienteSaidaDash extends Thread {
         try (Socket socket = new Socket(ipDashboard, portaDashboard); PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
             out.println(json);
         } catch (Exception e) {
-            EnviarLogs.enviar(TipoLog.AVISO, "Saída: falha ao enviar dados ao Dashboard (" + e.getMessage() + ")"
+            LogClienteDashboard.enviar(TipoLog.AVISO, "Saída: falha ao enviar dados ao Dashboard (" + e.getMessage() + ")"
             );
         }
     }

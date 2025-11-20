@@ -4,13 +4,11 @@ import Dashboard.Logs.DashLogger;
 import Dashboard.Paineis.*;
 import Dashboard.Utils.DashboardUIUtils;
 import Dashboard.Utils.MinimalScrollBarUI;
-import Utils.GestorEstatisticas;
+import Dashboard.Estatisticas.GestorEstatisticas;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.Map;
-
-import com.google.gson.JsonArray;
 
 public class DashboardFrame extends JFrame implements GestorEstatisticas.OuvinteEstatisticas {
 
@@ -164,7 +162,6 @@ public class DashboardFrame extends JFrame implements GestorEstatisticas.Ouvinte
     // ==================================================
     // GETTERS
     // ==================================================
-
     public PainelEstatsGlobais getPainelEstatisticas() { return painelEstatsGlobais; }
     public PainelMapa getPainelMapa() { return painelMapa; }
     public PainelEstatsSaida getPainelEstatisticasTipo() { return painelEstatsSaida; }

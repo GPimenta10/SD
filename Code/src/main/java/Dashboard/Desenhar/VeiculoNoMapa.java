@@ -1,4 +1,4 @@
-package Dashboard.Paineis;
+package Dashboard.Desenhar;
 
 import java.awt.*;
 import java.awt.geom.Point2D;
@@ -11,7 +11,7 @@ import java.util.List;
  * Representa um veículo animado no mapa do Dashboard.
  * Atualizada com tracking do percurso percorrido.
  */
-class VeiculoNoMapa {
+public class VeiculoNoMapa {
 
     // ===========================
     //   CONSTANTES DE MOVIMENTO
@@ -95,9 +95,9 @@ class VeiculoNoMapa {
     // ===========================
     //       CONSTRUTOR
     // ===========================
-    VeiculoNoMapa(String id, String tipo, Point2D origem, Point2D destino,
-                  Point2D posicaoSemaforo, String chaveSemaforo,
-                  Point2D origemAjustada, Point2D destinoAjustado) {
+    public VeiculoNoMapa(String id, String tipo, Point2D origem, Point2D destino,
+                         Point2D posicaoSemaforo, String chaveSemaforo,
+                         Point2D origemAjustada, Point2D destinoAjustado) {
 
         this.id = id;
         this.tipo = tipo;
@@ -132,17 +132,12 @@ class VeiculoNoMapa {
         caminhoPercorrido.add(origem.toString());
     }
 
-    // ===========================
-    //     MÉTODOS PRINCIPAIS
-    // ===========================
-    String getChaveSemaforo() {
+    public String getChaveSemaforo() {
         return chaveSemaforo;
     }
 
-    void adicionarProximoSegmento(String origemId, String destinoId,
-                                  Point2D posOrigem, Point2D posDestino,
-                                  String chaveSemaforo, Point2D posSemaforo,
-                                  Point2D posOrigemAjustada, Point2D posDestinoAjustado) {
+    public void adicionarProximoSegmento(String origemId, String destinoId, Point2D posOrigem, Point2D posDestino,
+                                  String chaveSemaforo, Point2D posSemaforo, Point2D posOrigemAjustada, Point2D posDestinoAjustado) {
 
         filaSegmentos.offer(new Segmento(
                 origemId, destinoId,
@@ -155,7 +150,7 @@ class VeiculoNoMapa {
         caminhoPercorrido.add(destinoId);
     }
 
-    void atualizar(boolean semaforoVerde, int posicaoFila) {
+    public void atualizar(boolean semaforoVerde, int posicaoFila) {
         this.posicaoNaFila = posicaoFila;
 
         if (chegouAoDestino() && !filaSegmentos.isEmpty()) {
@@ -235,10 +230,7 @@ class VeiculoNoMapa {
         progresso = distanciaParada / dist;
     }
 
-    // ===========================
-    //        ESTADOS
-    // ===========================
-    boolean ultrapassouSemaforo() {
+    public boolean ultrapassouSemaforo() {
         if (posicaoSemaforo == null) return true;
 
         double distTotal = origem.distance(destino);
@@ -254,24 +246,25 @@ class VeiculoNoMapa {
         return progresso >= 0.99;
     }
 
-    boolean terminouTodosSegmentos() {
+    public boolean terminouTodosSegmentos() {
         return chegouAoDestino() && filaSegmentos.isEmpty();
     }
 
-    // ===========================
-    //         GETTERS
-    // ===========================
-    String getId() { return id; }
-    String getTipo() { return tipo; }
+    public String getId() { return id; }
+    public String getTipo() { return tipo; }
     Point2D getPosicaoAtual() { return posicaoAtual; }
     boolean isParado() { return parado; }
 
+    /**
+     * Remover se não for necessário
+     * @return
+     */
     long getDwellingTimeSegundos() {
         return (System.currentTimeMillis() - timestampEntrada) / 1000;
     }
 
     /**
-     * Devolve o caminho percorrido pelo veículo.
+     * Remover se não for necessário
      */
     public List<String> getCaminhoPercorrido() {
         return new ArrayList<>(caminhoPercorrido);

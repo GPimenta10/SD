@@ -1,9 +1,10 @@
 package Saida;
 
-import Dashboard.Logs.TipoLog;
-import Utils.ConfigLoader;
-import Utils.EnviarLogs;
 import com.google.gson.JsonObject;
+
+import Dashboard.Logs.TipoLog;
+import Logging.LogClienteDashboard;
+import Utils.ConfigLoader;
 
 /**
  * Processo principal para a Saída do sistema de tráfego.
@@ -13,26 +14,29 @@ import com.google.gson.JsonObject;
  */
 public class SaidaMain {
     public static void main(String[] args) {
-        EnviarLogs.definirNomeProcesso("Saida");
-        EnviarLogs.enviar(TipoLog.SISTEMA, "Processo Saída iniciado");
+        LogClienteDashboard.definirNomeProcesso("Saida");
+        LogClienteDashboard.enviar(TipoLog.SISTEMA, "Processo Saída iniciado");
 
-        // Carrega configuração do ficheiro JSON
         JsonObject config = ConfigLoader.carregarSaida();
+        
+        // Ler IP e Porta da configuração
+        String ipServidor = config.has("ipServidor") 
+                ? config.get("ipServidor").getAsString() 
+                : "localhost";
         int portaServidor = config.get("portaServidor").getAsInt();
 
         String ipDashboard = config.get("ipDashboard").getAsString();
         int portaDashboard = config.get("portaDashboard").getAsInt();
 
-        // Inicializa a Saída com as configurações
-        Saida saida = new Saida(portaServidor, ipDashboard, portaDashboard);
+        Saida saida = new Saida(ipServidor, portaServidor, ipDashboard, portaDashboard);
         saida.iniciar();
 
-        EnviarLogs.enviar(TipoLog.SISTEMA, String.format("Saída configurada: porta local %d → Dashboard %s:%d",
-                        portaServidor, ipDashboard, portaDashboard)
+        LogClienteDashboard.enviar(TipoLog.SISTEMA, String.format("Saída configurada: local %s:%d → Dashboard %s:%d",
+                        ipServidor, portaServidor, ipDashboard, portaDashboard)
         );
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            EnviarLogs.enviar(TipoLog.SISTEMA, "A encerrar Saída");
+            LogClienteDashboard.enviar(TipoLog.SISTEMA, "A encerrar Saída");
             saida.parar();
         }));
 
@@ -41,7 +45,7 @@ public class SaidaMain {
                 Thread.sleep(1000);
             }
         } catch (InterruptedException e) {
-            EnviarLogs.enviar(TipoLog.AVISO, "Saída interrompida: " + e.getMessage());
+            LogClienteDashboard.enviar(TipoLog.AVISO, "Saída interrompida: " + e.getMessage());
             saida.parar();
         }
     }

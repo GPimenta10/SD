@@ -1,8 +1,10 @@
 {
   "dashboard": {
+    "ipServidor": "localhost",
     "portaServidor": 6000
   },
   "saida": {
+    "ipServidor": "localhost",
     "portaServidor": 5999,
     "ipDashboard": "localhost",
     "portaDashboard": 6000
@@ -10,6 +12,7 @@
   "cruzamentos": [
     {
       "nome": "Cr1",
+      "ipServidor": "localhost",
       "portaServidor": 5001,
       "ipDashboard": "localhost",
       "portaDashboard": 6000,
@@ -36,6 +39,7 @@
     },
     {
       "nome": "Cr2",
+      "ipServidor": "localhost",
       "portaServidor": 5002,
       "ipDashboard": "localhost",
       "portaDashboard": 6000,
@@ -86,6 +90,7 @@
     },
     {
       "nome": "Cr3",
+      "ipServidor": "localhost",
       "portaServidor": 5003,
       "ipDashboard": "localhost",
       "portaDashboard": 6000,
@@ -112,6 +117,7 @@
     },
     {
       "nome": "Cr4",
+      "ipServidor": "localhost",
       "portaServidor": 5004,
       "ipDashboard": "localhost",
       "portaDashboard": 6000,
@@ -126,6 +132,7 @@
     },
     {
       "nome": "Cr5",
+      "ipServidor": "localhost",
       "portaServidor": 5005,
       "ipDashboard": "localhost",
       "portaDashboard": 6000,

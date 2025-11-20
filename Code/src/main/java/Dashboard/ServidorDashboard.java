@@ -1,7 +1,5 @@
 package Dashboard;
 
-import Rede.Servidor;
-
 import java.io.BufferedReader;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -12,13 +10,14 @@ import java.util.regex.Pattern;
 
 import javax.swing.SwingUtilities;
 
-import Dashboard.Logs.DashLogger;
-import Dashboard.Logs.TipoLog;
-import Utils.GestorEstatisticas;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+
+import Dashboard.Estatisticas.GestorEstatisticas;
+import Dashboard.Logs.DashLogger;
+import Dashboard.Logs.TipoLog;
+import Rede.Servidor;
 
 public class ServidorDashboard extends Servidor {
 
@@ -26,20 +25,20 @@ public class ServidorDashboard extends Servidor {
     private final GestorEstatisticas gestor;
     private final Gson gson = new Gson();
 
-    public ServidorDashboard(int porta, DashboardFrame dashboardFrame, GestorEstatisticas gestor) {
-        super(porta, "ServidorDashboard");
+    public ServidorDashboard(String ip, int porta, DashboardFrame dashboardFrame, GestorEstatisticas gestor) {
+        super(ip, porta, "ServidorDashboard");
         this.dashboardFrame = dashboardFrame;
         this.gestor = gestor;
     }
 
     @Override
-    protected void tratarMensagem(String linha, BufferedReader leitor, PrintWriter escritor, Socket socket) {
-        processarMensagem(linha, socket);
+    protected void onInicio() {
+        DashLogger.log(TipoLog.SISTEMA, "Dashboard a escutar em " + ip + ":" + porta);
     }
 
     @Override
-    protected void onInicio() {
-        DashLogger.log(TipoLog.SISTEMA, "Dashboard a escutar na porta " + porta);
+    protected void tratarMensagem(String linha, BufferedReader leitor, PrintWriter escritor, Socket socket) {
+        processarMensagem(linha, socket);
     }
 
     @Override
@@ -72,10 +71,6 @@ public class ServidorDashboard extends Servidor {
         }
     }
 
-    // =====================================================================
-    //                                LOGS
-    // =====================================================================
-
     private void processarLog(JsonObject jsonObjeto, Socket socketCliente) {
         try {
 
@@ -100,8 +95,7 @@ public class ServidorDashboard extends Servidor {
 
             if (matcher.find()) {
                 int porta = Integer.parseInt(matcher.group(1));
-                SwingUtilities.invokeLater(() ->
-                        dashboardFrame.getPainelServidores().adicionarServidor(processo, ip, porta)
+                SwingUtilities.invokeLater(() -> dashboardFrame.getPainelServidores().adicionarServidor(processo, ip, porta)
                 );
             }
 
@@ -112,12 +106,7 @@ public class ServidorDashboard extends Servidor {
         }
     }
 
-    // =====================================================================
-    //                             VEÍCULO SAIU
-    // =====================================================================
-
     private void processarVeiculoSaida(JsonObject obj) {
-
         JsonObject c = obj.getAsJsonObject("conteudo");
 
         String id = c.get("id").getAsString();
@@ -138,19 +127,17 @@ public class ServidorDashboard extends Servidor {
 
         gestor.registarSaidaVeiculoJSON(estat);
 
-        // ----> Atualizar UI (agora com a List<String>, não JsonArray)
-        SwingUtilities.invokeLater(() ->
-                dashboardFrame.getPainelVeiculos().adicionarVeiculoSaiu(id, tipo, entrada, caminhoList, tempo)
+        SwingUtilities.invokeLater(() -> dashboardFrame.getPainelVeiculos().adicionarVeiculoSaiu(id, tipo, entrada, caminhoList, tempo)
         );
 
-        DashLogger.log(TipoLog.VEICULO,
-                "Veículo saiu: " + id + " (" + tipo + "), tempo=" + tempo + "s");
+        DashLogger.log(TipoLog.VEICULO, "Veículo saiu: " + id + " (" + tipo + "), tempo=" + tempo + "s");
     }
 
-    // =====================================================================
-    //                           VEÍCULO GERADO
-    // =====================================================================
-
+    /**
+     *
+     *
+     * @param obj
+     */
     private void processarVeiculoGerado(JsonObject obj) {
         String entrada = obj.get("origem").getAsString();
 
@@ -159,12 +146,12 @@ public class ServidorDashboard extends Servidor {
         DashLogger.log(TipoLog.GERADOR, "Veículo gerado em " + entrada);
     }
 
-    // =====================================================================
-    //                            MOVIMENTO
-    // =====================================================================
-
+    /**
+     *
+     *
+     * @param obj
+     */
     private void processarVeiculoMovimento(JsonObject obj) {
-
         JsonObject c = obj.getAsJsonObject("conteudo");
 
         String id = c.get("id").getAsString();
@@ -177,10 +164,11 @@ public class ServidorDashboard extends Servidor {
         );
     }
 
-    // =====================================================================
-    //                    ESTATÍSTICAS DE CRUZAMENTO
-    // =====================================================================
-
+    /**
+     *
+     *
+     * @param obj
+     */
     private void processarEstatisticaCruzamento(JsonObject obj) {
 
         String cruzamento = obj.get("origem").getAsString();

@@ -1,10 +1,13 @@
 package Dashboard;
 
+import javax.swing.SwingUtilities;
+
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.intellijthemes.FlatOneDarkIJTheme;
+import com.google.gson.JsonObject;
 
-import javax.swing.*;
-import Utils.GestorEstatisticas;
+import Dashboard.Estatisticas.GestorEstatisticas;
+import Utils.ConfigLoader;
 
 public class DashboardMain {
 
@@ -24,8 +27,13 @@ public class DashboardMain {
             GestorEstatisticas gestor = new GestorEstatisticas();
 
             DashboardFrame frame = new DashboardFrame(gestor);
+            
+            // NOVO: Carregar IP e Porta do configMapa.json em vez de hardcoded
+            JsonObject config = ConfigLoader.carregarDashboard();
+            String ip = config.has("ipServidor") ? config.get("ipServidor").getAsString() : "localhost";
+            int porta = config.get("portaServidor").getAsInt();
 
-            ServidorDashboard servidor = new ServidorDashboard(6000, frame, gestor);
+            ServidorDashboard servidor = new ServidorDashboard(ip, porta, frame, gestor);
 
             servidor.start();
             frame.setVisible(true);

@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -13,22 +14,25 @@ import java.net.Socket;
  * específico para as subclasses através do método abstrato tratarMensagem().
  */
 public abstract class Servidor extends Thread {
+    protected final String ip;
     protected final int porta;
     protected volatile boolean ativo = true;
 
     /**
      * Construtor base
      *
+     * @param ip Endereço IP onde o servidor irá escutar
      * @param porta Porta TCP onde o servidor irá escutar
      * @param nomeThread Nome da thread (para identificação)
      */
-    public Servidor(int porta, String nomeThread) {
+    public Servidor(String ip, int porta, String nomeThread) {
         super(nomeThread);
 
         if (porta < 1 || porta > 65535) {
             throw new IllegalArgumentException("Porta inválida: deve estar entre 1 e 65535");
         }
 
+        this.ip = (ip == null || ip.isEmpty()) ? "localhost" : ip;
         this.porta = porta;
     }
 
@@ -40,7 +44,8 @@ public abstract class Servidor extends Thread {
     public void run() {
         onInicio();
 
-        try (ServerSocket serverSocket = new ServerSocket(porta)) {
+        // Agora especificamos o IP (bindAddr) além da porta
+        try (ServerSocket serverSocket = new ServerSocket(porta, 50, InetAddress.getByName(ip))) {
             while (ativo) {
                 try {
                     Socket socket = serverSocket.accept();
@@ -120,7 +125,7 @@ public abstract class Servidor extends Thread {
         ativo = false;
         interrupt();
 
-        try (Socket socket = new Socket("localhost", porta)) {} catch (Exception ignored) {}
+        try (Socket socket = new Socket(ip, porta)) {} catch (Exception ignored) {}
     }
 
     /**

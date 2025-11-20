@@ -1,7 +1,7 @@
 package Dashboard.Paineis;
 
 import Dashboard.Utils.DashboardUIUtils;
-import Utils.GestorEstatisticas.EstatisticasFila;
+import Dashboard.Estatisticas.GestorEstatisticas.EstatisticasFila;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -42,7 +42,7 @@ public class PainelEstatsCruzamentos extends JPanel {
                 UIManager.getColor("Label.foreground")
         ));
 
-        String[] colunas = {"Semáforo", "Atual", "Mínimo", "Médio", "Máximo"};
+        String[] colunas = {"Semáforo", "Atual", "Médio", "Máximo"};
 
         DefaultTableModel modelo = new DefaultTableModel(colunas, 0) {
             @Override
@@ -85,7 +85,6 @@ public class PainelEstatsCruzamentos extends JPanel {
             modelo.addRow(new Object[]{
                     semaforo,
                     s.getAtual(),
-                    s.getMinimo(),
                     String.format("%.1f", s.getMedia()),
                     s.getMaximo()
             });

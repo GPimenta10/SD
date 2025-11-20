@@ -1,9 +1,5 @@
 package Cruzamentos;
 
-import Utils.EnviarLogs;
-import Veiculo.Veiculo;
-import Dashboard.Logs.TipoLog;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -14,13 +10,19 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 
+import Dashboard.Estatisticas.EstatisticaCruzamento;
+import Dashboard.Estatisticas.EstatisticaSemaforo;
+import Dashboard.Logs.TipoLog;
+import Logging.LogClienteDashboard;
+import Veiculo.Veiculo;
+
 /**
  * Classe Cruzamento responsável por:
- *  - Criar e gerir filas de veículos (uma por origem)
- *  - Controlar os semáforos associados a cada fila
- *  - Receber veículos de outros cruzamentos
- *  - Enviar veículos para o cruzamento seguinte ou para a saída via TCP
- *  - Comunicar periodicamente o seu estado ao Dashboard
+ *   Criar e gerir filas de veículos (uma por origem)
+ *   Controlar os semáforos associados a cada fila
+ *   Receber veículos de outros cruzamentos
+ *   Enviar veículos para o cruzamento seguinte ou para a saída via TCP
+ *   Comunicar periodicamente o seu estado ao Dashboard
  *
  * Nota:
  *   Os semáforos apenas retiram veículos da fila associada.
@@ -30,6 +32,7 @@ public class Cruzamento {
     private final String nomeCruzamento;
 
     // Comunicação entre cruzamentos
+    private final String ipServidor;
     private final int portaServidor;
     private final Map<String, ClienteCruzamento> mapaDestinoParaCliente = new HashMap<>();
     private ServidorCruzamento servidorCruzamento;
@@ -50,15 +53,17 @@ public class Cruzamento {
     private final Gson gson = new Gson();
 
     /**
-     * Construtor do cruzamento.
+     * Construtor da classe.
      *
      * @param nomeCruzamento Nome do cruzamento
+     * @param ipServidor IP para este cruzamento escutar
      * @param portaServidor Porta para receber veículos
      * @param ipDashboard IP do Dashboard
      * @param portaDashboard Porta do Dashboard
      */
-    public Cruzamento(String nomeCruzamento, int portaServidor, String ipDashboard, int portaDashboard) {
+    public Cruzamento(String nomeCruzamento, String ipServidor, int portaServidor, String ipDashboard, int portaDashboard) {
         this.nomeCruzamento = nomeCruzamento;
+        this.ipServidor = ipServidor;
         this.portaServidor = portaServidor;
         this.ipDashboard = ipDashboard;
         this.portaDashboard = portaDashboard;
@@ -74,22 +79,6 @@ public class Cruzamento {
     }
 
     /**
-     * Obtém o tamanho atual de uma fila específica.
-     *
-     * @param origemFila Identificador da fila
-     * @return Tamanho da fila, ou -1 se não existir
-     */
-    public int obterTamanhoFila(String origemFila) {
-        FilaVeiculos fila = mapaOrigemParaFila.get(origemFila);
-
-        if (fila == null) {
-            return -1;
-        }
-
-        return fila.getTamanhoAtual();
-    }
-
-    /**
      * Define uma ligação entre uma origem deste cruzamento e um cruzamento seguinte.
      *
      * @param origem Nome da origem
@@ -98,7 +87,7 @@ public class Cruzamento {
      * @param portaDestino Porta TCP do cruzamento destino
      */
     public void adicionarLigacao(String origem, String destino, String ipDestino, int portaDestino) {
-        EnviarLogs.enviar(TipoLog.SISTEMA, String.format("[%s] Configurar ligação: %s → %s", nomeCruzamento, origem, destino));
+        LogClienteDashboard.enviar(TipoLog.SISTEMA, String.format("[%s] Configurar ligação: %s → %s", nomeCruzamento, origem, destino));
 
         // Criar a fila associada à origem
         FilaVeiculos fila = new FilaVeiculos();
@@ -116,12 +105,10 @@ public class Cruzamento {
      * Inicializa o cruzamento, os semáforos e os clientes/servidores TCP.
      */
     public void iniciar() {
-        EnviarLogs.enviar(TipoLog.CRUZAMENTO, "A iniciar o cruzamento " + nomeCruzamento);
+        LogClienteDashboard.enviar(TipoLog.CRUZAMENTO, "A iniciar o cruzamento " + nomeCruzamento);
 
-        // Criar monitor dos semáforos
         monitorSemaforos = new MonitorSemaforos(mapaOrigemParaFila.size());
 
-        // Criar semáforos
         int idSemaforo = 0;
         for (Map.Entry<String, FilaVeiculos> entry : mapaOrigemParaFila.entrySet()) {
 
@@ -141,20 +128,17 @@ public class Cruzamento {
             idSemaforo++;
         }
 
-        // Arrancar servidor TCP
-        servidorCruzamento = new ServidorCruzamento(portaServidor, this);
+        // Agora passamos o IP e a Porta
+        servidorCruzamento = new ServidorCruzamento(ipServidor, portaServidor, this);
         servidorCruzamento.start();
 
-        // Arrancar clientes TCP
         for (ClienteCruzamento cliente : mapaDestinoParaCliente.values()) {
             cliente.start();
         }
 
-        // Cliente do Dashboard
         clienteCruzamentoDashboard = new ClienteCruzamentoDashboard(ipDashboard, portaDashboard, this);
         clienteCruzamentoDashboard.start();
 
-        // Arrancar semáforos
         for (Semaforo semaforo : listaSemaforos) {
             semaforo.start();
         }
@@ -170,12 +154,12 @@ public class Cruzamento {
         FilaVeiculos filaVeiculos = mapaOrigemParaFila.get(origem);
 
         if (filaVeiculos == null) {
-            EnviarLogs.enviar(TipoLog.ERRO, String.format("[%s] ERRO: Origem '%s' desconhecida", nomeCruzamento, origem));
+            LogClienteDashboard.enviar(TipoLog.ERRO, String.format("[%s] ERRO: Origem '%s' desconhecida", nomeCruzamento, origem));
             return;
         }
 
         filaVeiculos.adicionar(veiculo);
-        EnviarLogs.enviar(TipoLog.SISTEMA, String.format("[%s] Recebido veículo %s → fila %s", nomeCruzamento, veiculo.getId(), origem));
+        LogClienteDashboard.enviar(TipoLog.SISTEMA, String.format("[%s] Recebido veículo %s → fila %s", nomeCruzamento, veiculo.getId(), origem));
     }
 
     /**
@@ -206,17 +190,17 @@ public class Cruzamento {
         ClienteCruzamento cliente = mapaDestinoParaCliente.get(destino);
 
         if (cliente == null) {
-            EnviarLogs.enviar(TipoLog.ERRO, String.format("[%s] ERRO: Cliente TCP para '%s' não existe",
+            LogClienteDashboard.enviar(TipoLog.ERRO, String.format("[%s] ERRO: Cliente TCP para '%s' não existe",
                     nomeCruzamento, destino));
             return;
         }
 
-        EnviarLogs.enviar(TipoLog.SISTEMA, String.format("[%s] Enviar veículo %s → %s", nomeCruzamento, veiculo.getId(), destino));
+        LogClienteDashboard.enviar(TipoLog.SISTEMA, String.format("[%s] Enviar veículo %s → %s", nomeCruzamento, veiculo.getId(), destino));
         cliente.enviarVeiculo(veiculo, nomeCruzamento);
     }
 
     /**
-     * Notifica o Dashboard acerca do movimento de um veículo.
+     * Notifica o Dashboard sobre o movimento de um veículo.
      */
     private void notificarDashboardMovimento(Veiculo veiculo, String origem, String destino) {
         try (Socket socket = new Socket(ipDashboard, portaDashboard);
@@ -236,7 +220,7 @@ public class Cruzamento {
 
             out.println(gson.toJson(mensagem));
         } catch (IOException e) {
-            EnviarLogs.enviar(TipoLog.ERRO, String.format("[%s] Falha ao notificar Dashboard: %s",
+            LogClienteDashboard.enviar(TipoLog.ERRO, String.format("[%s] Falha ao notificar Dashboard: %s",
                     nomeCruzamento, e.getMessage()));
         }
     }
@@ -244,30 +228,21 @@ public class Cruzamento {
     /**
      * Constrói o mapa de estatísticas enviado ao Dashboard.
      *
-     * @return Mapa com o estado deste cruzamento
+     * @return
      */
     public Map<String, Object> gerarEstatisticas() {
-        List<Map<String, Object>> listaInfo = new ArrayList<>();
+        List<EstatisticaSemaforo> lista = new ArrayList<>();
 
         for (Semaforo semaforo : listaSemaforos) {
-            Map<String, Object> info = new HashMap<>();
-
-            info.put("id", semaforo.getIdSemaforo());
-            info.put("estado", semaforo.isVerde() ? "VERDE" : "VERMELHO");
-            info.put("tamanhoFila", semaforo.getTamanhoFila());
-            info.put("origem", semaforo.getOrigem());
-            info.put("destino", nomeCruzamento);
-
-            listaInfo.add(info);
+            lista.add(semaforo.getEstatistica(nomeCruzamento));
         }
 
-        Map<String, Object> root = new HashMap<>();
-        root.put("cruzamento", nomeCruzamento);
-        root.put("semaforos", listaInfo);
+        // Criar objeto de estatísticas do cruzamento
+        EstatisticaCruzamento estatistica = new EstatisticaCruzamento(nomeCruzamento, lista);
 
-        return root;
+        // Mantém compatibilidade: devolve Map<String,Object>
+        return estatistica.toMap();
     }
-
 
     /**
      * Encerra todos os componentes do cruzamento.

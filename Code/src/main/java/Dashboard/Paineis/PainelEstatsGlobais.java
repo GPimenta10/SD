@@ -1,7 +1,7 @@
 package Dashboard.Paineis;
 
 import Dashboard.Utils.DashboardUIUtils;
-import Utils.GestorEstatisticas.EstatisticasGlobais;
+import Dashboard.Estatisticas.GestorEstatisticas.EstatisticasGlobais;
 
 import javax.swing.*;
 import java.awt.*;
