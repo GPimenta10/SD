@@ -18,6 +18,11 @@
 
 - [ ] Classe VeiculoNoMapa muito grande, deve ser decomposta em pequenas classes. O melhor é pedir ajuda ao Claude, ChatGPT quando ajudava retirava métodos e passava a funcionar de forma errática. Ideia seria ter uma classe para todos os cálculos e a classe VeiculoNoMapa passar a chamar esses métodos.
       
+- [ ] GestorEstatisticas.java com problema: Classe muito grande (200+ linhas) com múltiplas responsabilidades. Simplificação:
+        Separar DTOs (EstatisticasGlobais, EstatisticasFila, EstatisticasSaida) em ficheiro próprio
+        Extrair lógica de notificação para classe NotificadorEstatisticas
+        Usar Streams API para simplificar getTotalGerado(): 
+      
 - [x] ~~Dashboard.Utils.EventoMovimento. Classe simples que poderia estar em Dashboard ou Dashboard.Paineis. É específica do mapa, não é utilitário genérico. Não está a ser usada, era para tratar daquele stress de estar mais lento o mapa que o código, a meu ver pode ser eliminada bem como toda a lógica associada à mesma (é preciso ver noutras classes se existem métodos relativos a isto).~~
       
 - [x] ~~GestorEstatisticas em Utils. É específico do Dashboard, não é utilitário genérico. Sugestão: Mover para Dashboard.Gestao ou Dashboard (confirmar se é só mover, se for pode-se dar check).~~
@@ -58,11 +63,6 @@
           public static Mensagem fromJson(String json) { return new Gson().fromJson(json, Mensagem.class); }
       }
       
-- [ ] GestorEstatisticas.java com problema: Classe muito grande (200+ linhas) com múltiplas responsabilidades. Simplificação:
-        Separar DTOs (EstatisticasGlobais, EstatisticasFila, EstatisticasSaida) em ficheiro próprio
-        Extrair lógica de notificação para classe NotificadorEstatisticas
-        Usar Streams API para simplificar getTotalGerado():
-
 - [x] ~~PainelMapa.java está muito grande (400+ linhas), extrair lógica de desenho para classes auxiliares: DesenharVias, DesenharNos, DesenharSemaforos, DesenharVeiculos. Extrair cálculos de posições para classe GestorPosicoes~~
       
 - [x] ~~Utils EnviarLogs.java duplica funcionalidade de DashLogger.java~~
