@@ -3,8 +3,8 @@
 - [ ] Criar menu para escolher carga  
 - [ ] Criar menu para escolher modo  
 - [ ] Retirar limite de fila / Aumentar limite  
-- [ ] Criar classe para calcular estatísticas e enviar as mesmas ao dashboard  
-- [ ] Mover o método da classe `Veiculo` (responsável por cálculos/estatísticas) para a nova classe de estatísticas  
+- [X] Criar classe para calcular estatísticas e enviar as mesmas ao dashboard  
+- [X] Mover o método da classe `Veiculo` (responsável por cálculos/estatísticas) para a nova classe de estatísticas  
 - [ ] Rever classes e simplificar partes das mesmas (ter em conta o FPOO)  
 - [ ] Comentar código  
 
