@@ -4,10 +4,12 @@ import java.awt.*;
 import java.awt.geom.Point2D;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Representa um veículo animado no mapa do Dashboard.
- * Lógica original intocada. Apenas organização e estilo modernizado.
+ * Atualizada com tracking do percurso percorrido.
  */
 class VeiculoNoMapa {
 
@@ -52,6 +54,11 @@ class VeiculoNoMapa {
     //   FILA DE SEGMENTOS
     // ===========================
     private final Queue<Segmento> filaSegmentos;
+
+    // ===========================
+    //   REGISTO DO CAMINHO
+    // ===========================
+    private final List<String> caminhoPercorrido = new ArrayList<>();
 
     // ===========================
     //   CLASSE DO SEGMENTO
@@ -120,6 +127,9 @@ class VeiculoNoMapa {
             case "CAMIAO" -> VELOCIDADE_CAMIAO;
             default -> VELOCIDADE_CARRO;
         };
+
+        // Registrar início do percurso
+        caminhoPercorrido.add(origem.toString());
     }
 
     // ===========================
@@ -140,23 +150,23 @@ class VeiculoNoMapa {
                 chaveSemaforo, posSemaforo,
                 posOrigemAjustada, posDestinoAjustado
         ));
+
+        // Registrar caminho
+        caminhoPercorrido.add(destinoId);
     }
 
     void atualizar(boolean semaforoVerde, int posicaoFila) {
         this.posicaoNaFila = posicaoFila;
 
-        // Mudança de segmento
         if (chegouAoDestino() && !filaSegmentos.isEmpty()) {
             avancarParaProximoSegmento();
         }
 
-        // Parado na fila
         if (parado && !semaforoVerde) {
             pararNaFila();
             return;
         }
 
-        // Movimento
         parado = false;
         progresso += velocidade / 130.0;
         if (progresso > 1.0) progresso = 1.0;
@@ -168,7 +178,6 @@ class VeiculoNoMapa {
 
         posicaoAtual.setLocation(x, y);
 
-        // Avaliar proximidade ao semáforo
         if (!semaforoVerde && posicaoSemaforo != null && posicaoNaFila >= 0) {
 
             double distSemaforo = origem.distance(posicaoSemaforo);
@@ -217,7 +226,7 @@ class VeiculoNoMapa {
         double distSemaforo = origem.distance(posicaoSemaforo);
         double recuo = posicaoNaFila * DISTANCIA_FILA;
 
-        double distanciaParada = Math.max(0, distSemaforo - 30 - recuo);
+        double distanciaParada = Math.max(0, distSemaforo - 20 - recuo);
 
         double x = origemAjustada.getX() + ux * distanciaParada;
         double y = origemAjustada.getY() + uy * distanciaParada;
@@ -256,17 +265,23 @@ class VeiculoNoMapa {
     String getTipo() { return tipo; }
     Point2D getPosicaoAtual() { return posicaoAtual; }
     boolean isParado() { return parado; }
-    long getTimestampEntrada() { return timestampEntrada; }
 
     long getDwellingTimeSegundos() {
         return (System.currentTimeMillis() - timestampEntrada) / 1000;
+    }
+
+    /**
+     * Devolve o caminho percorrido pelo veículo.
+     */
+    public List<String> getCaminhoPercorrido() {
+        return new ArrayList<>(caminhoPercorrido);
     }
 
     Color getCor() {
         return switch (tipo) {
             case "MOTA" -> new Color(255, 193, 7);   // Amarelo
             case "CARRO" -> new Color(33, 150, 243); // Azul
-            case "CAMIAO" -> new Color(244, 67, 54); // Vermelho
+            case "CAMIAO" -> new Color(130, 109, 56);
             default -> Color.GRAY;
         };
     }

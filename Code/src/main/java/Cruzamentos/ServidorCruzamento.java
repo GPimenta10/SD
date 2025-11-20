@@ -1,138 +1,114 @@
 package Cruzamentos;
 
-import Dashboard.Logs.TipoLog;
+import Rede.Servidor;
 import Rede.Mensagem;
-import Utils.EnviarLogs;
+import Dashboard.Logs.TipoLog;
+import Logging.LogClienteDashboard;
 import Veiculo.Veiculo;
 import com.google.gson.Gson;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.ServerSocket;
+import java.io.PrintWriter;
 import java.net.Socket;
 
 /**
- * Servidor de um cruzamento realizado por uma Thread.
- * Escuta numa porta TCP e processa mensagens recebidas.
+ *
  */
-public class ServidorCruzamento extends Thread {
-
-    private final int portaServidor;
+public class ServidorCruzamento extends Servidor {
     private final Cruzamento cruzamento;
-    private volatile boolean ativo = true;
-
     private final Gson gson = new Gson();
 
     /**
-     * Construtor da classe
      *
-     * @param portaServidor Porta onde os clientes irão se conectar
+     *
+     * @param porta
      * @param cruzamento
      */
-    public ServidorCruzamento(int portaServidor, Cruzamento cruzamento) {
-        super("Servidor-" + cruzamento.getNomeCruzamento());
-        this.portaServidor = portaServidor;
+    public ServidorCruzamento(int porta, Cruzamento cruzamento) {
+        super(porta, "Servidor-" + cruzamento.getNomeCruzamento());
         this.cruzamento = cruzamento;
     }
 
     /**
-     * Execução base da thread
+     *
      */
     @Override
-    public void run() {
-        EnviarLogs.enviar(TipoLog.SISTEMA, "Servidor do cruzamento " + cruzamento.getNomeCruzamento() +
-                        " a escutar na porta " + portaServidor + ".");
+    protected void onInicio() {
+        LogClienteDashboard.enviar(TipoLog.SISTEMA,
+                "Servidor do cruzamento " + cruzamento.getNomeCruzamento() +
+                        " a escutar na porta " + porta + ".");
+    }
 
-        try (ServerSocket serverSocket = new ServerSocket(portaServidor)) {
-            while (ativo) {
-                try {
-                    Socket socket = serverSocket.accept();
-                    new Thread(() -> tratarLigacao(socket)).start();
-                } catch (IOException e) {
-                    if (ativo) {
-                        // Debug silencioso (não interessa ao dashboard)
-                        /*
-                        System.err.printf("[ServidorCruzamento %s] Erro ao aceitar ligação: %s%n",
-                               cruzamento.getNomeCruzamento(), e.getMessage());
-                        */
-                    }
-                }
-            }
-        } catch (IOException e) {
-            EnviarLogs.enviar(TipoLog.ERRO, "Erro ao iniciar servidor do cruzamento " +
-                            cruzamento.getNomeCruzamento() + ": " + e.getMessage()
-            );
+    /**
+     *
+     *
+     * @param linha Linha JSON recebida
+     * @param leitor BufferedReader para ler mais dados se necessário
+     * @param escritor PrintWriter para enviar respostas
+     * @param socket Socket da conexão (para obter informações do cliente)
+     * @throws IOException
+     */
+    @Override
+    protected void tratarMensagem(String linha, BufferedReader leitor, PrintWriter escritor, Socket socket) throws IOException {
+        Mensagem mensagem = Mensagem.fromJson(linha);
+
+        if ("VEICULO".equalsIgnoreCase(mensagem.tipo())) {
+            processarVeiculo(mensagem);
         }
     }
 
     /**
-     * Trata uma ligação recebida – interpreta a mensagem e executa a ação correspondente.
      *
+     *
+     * @param mensagem
+     */
+    private void processarVeiculo(Mensagem mensagem) {
+        Object conteudoObj = mensagem.conteudo().get("veiculo");
+
+        if (conteudoObj != null) {
+            Veiculo veiculo = gson.fromJson(gson.toJson(conteudoObj), Veiculo.class);
+
+            String origem = mensagem.origem();
+            Object origemObj = mensagem.conteudo().get("origem");
+
+            if (origemObj != null) {
+                origem = origemObj.toString();
+            }
+
+            cruzamento.receberVeiculo(veiculo, origem);
+        }
+    }
+
+    /**
+     *
+     * @param e
      * @param socket
      */
-    private void tratarLigacao(Socket socket) {
-        try (BufferedReader leitor = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-            String linhaJson;
-            while ((linhaJson = leitor.readLine()) != null) {
-
-                Mensagem mensagem = Mensagem.fromJson(linhaJson);
-
-                // Debug (não enviar para Dashboard)
-                /*
-                System.out.printf(
-                        "[ServidorCruzamento %s] Mensagem recebida: tipo=%s, origem=%s%n",
-                        cruzamento.getNomeCruzamento(),
-                        mensagem.getTipo(),
-                        mensagem.getOrigem()
-                );
-                */
-
-                if ("VEICULO".equalsIgnoreCase(mensagem.getTipo())) {
-                    Object conteudoObj = mensagem.getConteudo().get("veiculo");
-
-                    if (conteudoObj != null) {
-                        Veiculo veiculo = gson.fromJson(gson.toJson(conteudoObj), Veiculo.class);
-
-                        // Extrair origem
-                        String origem = mensagem.getOrigem();
-                        Object origemObj = mensagem.getConteudo().get("origem");
-
-                        if (origemObj != null) {
-                            origem = origemObj.toString();
-                        }
-                        cruzamento.receberVeiculo(veiculo, origem);
-                    }
-                } else {
-                    // Debug comentado
-                    /*
-                    System.out.printf(
-                            "[ServidorCruzamento %s] Tipo de mensagem desconhecido: %s%n",
-                            cruzamento.getNomeCruzamento(),
-                            mensagem.getTipo()
-                    );
-                    */
-                }
-            }
-        } catch (IOException e) {
-            // Debug (não mandar para Dashboard)
-            /*
-            System.err.printf(
-                    "[ServidorCruzamento %s] Erro ao ler mensagem: %s%n",
-                    cruzamento.getNomeCruzamento(),
-                    e.getMessage()
-            );
-            */
-        }
+    @Override
+    protected void onErroProcessamento(IOException e, Socket socket) {
+        LogClienteDashboard.enviar(TipoLog.ERRO,
+                "Erro ao ler mensagem no cruzamento " +
+                        cruzamento.getNomeCruzamento() + ": " + e.getMessage());
     }
 
     /**
-     * Interrompe o servidor de forma segura.
+     *
+     * @param e
      */
-    public void pararServidor() {
-        ativo = false;
-        interrupt();
+    @Override
+    protected void onErroInicializacao(IOException e) {
+        LogClienteDashboard.enviar(TipoLog.ERRO,
+                "Erro ao iniciar servidor do cruzamento " +
+                        cruzamento.getNomeCruzamento() + ": " + e.getMessage());
+    }
 
-        EnviarLogs.enviar(TipoLog.SISTEMA, "Servidor do cruzamento " + cruzamento.getNomeCruzamento() + " encerrado.");
+    /**
+     *
+     */
+    @Override
+    protected void onEncerramento() {
+        LogClienteDashboard.enviar(TipoLog.SISTEMA,
+                "Servidor do cruzamento " + cruzamento.getNomeCruzamento() + " encerrado.");
     }
 }

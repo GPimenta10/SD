@@ -1,6 +1,7 @@
 package Dashboard.Paineis;
 
 import Dashboard.Utils.DashboardUIUtils;
+import Dashboard.Estatisticas.GestorEstatisticas.EstatisticasFila;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -8,69 +9,31 @@ import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- *
- */
 public class PainelEstatsCruzamentos extends JPanel {
 
-    private final Map<String, Map<String, EstatisticasSemaforo>> estatisticas;
     private final Map<String, DefaultTableModel> modelosTabelas;
 
-    /**
-     *
-     *
-     */
-    private static class EstatisticasSemaforo {
-        int atual = 0;
-        int maximo = 0;
-        int minimo = Integer.MAX_VALUE;
-        long soma = 0;
-        long contagem = 0;
-
-        void registar(int novoValor) {
-            atual = novoValor;
-            if (novoValor > maximo) maximo = novoValor;
-            if (novoValor < minimo) minimo = novoValor;
-            soma += novoValor;
-            contagem++;
-        }
-
-        double media() {
-            return contagem > 0 ? (double) soma / contagem : 0.0;
-        }
-    }
-
-    /**
-     *
-     *
-     */
     public PainelEstatsCruzamentos() {
-        this.estatisticas = new HashMap<>();
-        this.modelosTabelas = new HashMap<>();
+
+        modelosTabelas = new HashMap<>();
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBackground(UIManager.getColor("Panel.background"));
 
+        // Criar 5 blocos: Cr1..Cr5
         for (int i = 1; i <= 5; i++) {
             adicionarPainelCruzamento("Cr" + i);
         }
     }
 
     /**
-     *
-     *
-     * @param cruzamento
+     * Cria a secção visual para um cruzamento com uma tabela vazia.
      */
     private void adicionarPainelCruzamento(String cruzamento) {
 
-        estatisticas.put(cruzamento, new HashMap<>());
-
         JPanel painel = new JPanel(new BorderLayout());
-        painel.setBackground(UIManager.getColor("Panel.background")); // ✔ moderno
+        painel.setBackground(UIManager.getColor("Panel.background"));
 
-        // ======================
-        // Border moderna do FlatLaf
-        // ======================
         painel.setBorder(BorderFactory.createTitledBorder(
                 UIManager.getBorder("TitledBorder.border"),
                 "Estatísticas — " + cruzamento,
@@ -79,16 +42,11 @@ public class PainelEstatsCruzamentos extends JPanel {
                 UIManager.getColor("Label.foreground")
         ));
 
-        // ======================
-        // Modelo moderno da tabela
-        // ======================
         String[] colunas = {"Semáforo", "Atual", "Mínimo", "Médio", "Máximo"};
 
         DefaultTableModel modelo = new DefaultTableModel(colunas, 0) {
             @Override
-            public boolean isCellEditable(int r, int c) {
-                return false;
-            }
+            public boolean isCellEditable(int r, int c) { return false; }
         };
 
         modelosTabelas.put(cruzamento, modelo);
@@ -106,45 +64,30 @@ public class PainelEstatsCruzamentos extends JPanel {
     }
 
     /**
+     * Atualiza a tabela com estatísticas vindas diretamente do GestorEstatisticas.
      *
-     *
-     * @param cruzamento
-     * @param semaforo
-     * @param filaAtual
+     * Chamado pelo DashboardFrame quando o GestorEstatisticas notifica
+     * onEstatisticasCruzamentoAtualizadas(cruzamento, filas)
      */
-    public void atualizarFila(String cruzamento, String semaforo, int filaAtual) {
+    public void atualizarCruzamento(String cruzamento,
+                                    Map<String, EstatisticasFila> filas) {
 
-        estatisticas.putIfAbsent(cruzamento, new HashMap<>());
-        Map<String, EstatisticasSemaforo> mapa = estatisticas.get(cruzamento);
-
-        EstatisticasSemaforo stats =
-                mapa.computeIfAbsent(semaforo, k -> new EstatisticasSemaforo());
-
-        stats.registar(filaAtual);
-
-        atualizarTabela(cruzamento);
-    }
-
-    /**
-     *
-     *
-     * @param cruzamento
-     */
-    private void atualizarTabela(String cruzamento) {
         DefaultTableModel modelo = modelosTabelas.get(cruzamento);
-        Map<String, EstatisticasSemaforo> mapa = estatisticas.get(cruzamento);
+        if (modelo == null) return;
 
-        modelo.setRowCount(0);
+        modelo.setRowCount(0); // limpar tabela
 
-        for (String semaforo : mapa.keySet()) {
-            EstatisticasSemaforo s = mapa.get(semaforo);
+        for (Map.Entry<String, EstatisticasFila> entry : filas.entrySet()) {
+
+            String semaforo = entry.getKey();
+            EstatisticasFila s = entry.getValue();
 
             modelo.addRow(new Object[]{
                     semaforo,
-                    s.atual,
-                    s.minimo == Integer.MAX_VALUE ? "-" : s.minimo,
-                    String.format("%.1f", s.media()),
-                    s.maximo
+                    s.getAtual(),
+                    s.getMinimo(),
+                    String.format("%.1f", s.getMedia()),
+                    s.getMaximo()
             });
         }
     }

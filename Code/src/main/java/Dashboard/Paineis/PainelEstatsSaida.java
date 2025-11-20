@@ -1,62 +1,31 @@
 package Dashboard.Paineis;
 
 import Dashboard.Utils.DashboardUIUtils;
+import Dashboard.Estatisticas.GestorEstatisticas.EstatisticasSaida;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
- *
+ * Painel de estatísticas de saída (dwelling time e quantidades).
+ * Não calcula nada — recebe dados prontos do GestorEstatisticas.
  */
 public class PainelEstatsSaida extends JPanel {
 
-    private final Map<String, EstatisticasTipo> estatisticasPorTipo;
     private final DefaultTableModel modeloDwellingTime;
     private final DefaultTableModel modeloQuantidades;
     private final JTable tabelaDwellingTime;
     private final JTable tabelaQuantidades;
 
-    /**
-     * Classe interna para estatísticas
-     */
-    private static class EstatisticasTipo {
-        long dwellingTimeMin = Long.MAX_VALUE;
-        long dwellingTimeMax = 0;
-        long dwellingTimeTotal = 0;
-        int quantidade = 0;
-
-        void registar(long dwellingTime) {
-            quantidade++;
-            dwellingTimeTotal += dwellingTime;
-            if (dwellingTime < dwellingTimeMin) dwellingTimeMin = dwellingTime;
-            if (dwellingTime > dwellingTimeMax) dwellingTimeMax = dwellingTime;
-        }
-
-        double getMedia() {
-            return quantidade > 0 ? (double) dwellingTimeTotal / quantidade : 0;
-        }
-    }
-
-    /**
-     *
-     */
     public PainelEstatsSaida() {
 
-        // Fundo moderno (tema controla)
         setLayout(new BorderLayout(5, 5));
         setBackground(UIManager.getColor("Panel.background"));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Estatísticas iniciais
-        estatisticasPorTipo = new HashMap<>();
-        estatisticasPorTipo.put("MOTA", new EstatisticasTipo());
-        estatisticasPorTipo.put("CARRO", new EstatisticasTipo());
-        estatisticasPorTipo.put("CAMIAO", new EstatisticasTipo());
-
-        // PAINEL: DWELLING TIME
+        // ============= PAINEL DWELLING TIME =============
         JPanel painelDwelling = new JPanel(new BorderLayout(5, 5));
         painelDwelling.setBackground(UIManager.getColor("Panel.background"));
         painelDwelling.setBorder(BorderFactory.createTitledBorder(
@@ -82,7 +51,7 @@ public class PainelEstatsSaida extends JPanel {
 
         painelDwelling.add(scrollDwelling, BorderLayout.CENTER);
 
-        // PAINEL: QUANTIDADES
+        // ============= PAINEL QUANTIDADES =============
         JPanel painelQuantidades = new JPanel(new BorderLayout(5, 5));
         painelQuantidades.setBackground(UIManager.getColor("Panel.background"));
         painelQuantidades.setBorder(BorderFactory.createTitledBorder(
@@ -108,55 +77,52 @@ public class PainelEstatsSaida extends JPanel {
 
         painelQuantidades.add(scrollQuantidades, BorderLayout.CENTER);
 
-        // Disposição principal
+        // ============= DISPOSIÇÃO FINAL ==============
         add(painelDwelling, BorderLayout.NORTH);
         add(painelQuantidades, BorderLayout.CENTER);
-
-        atualizarTabelas();
     }
 
     /**
+     * Atualiza o painel com estatísticas recebidas do GestorEstatisticas.
      *
-     * @param tipo
-     * @param dwellingTimeSegundos
+     * Chamado pelo DashboardFrame:
+     *   painelEstatsSaida.atualizar(estatisticasPorTipo);
      */
-    public void atualizarEstatisticasSaida(String tipo, long dwellingTimeSegundos) {
-        EstatisticasTipo stats = estatisticasPorTipo.get(tipo);
-        if (stats != null) {
-            stats.registar(dwellingTimeSegundos);
-            atualizarTabelas();
-        }
-    }
+    public void atualizar(Map<String, EstatisticasSaida> estatisticas) {
+        if (estatisticas == null) return;
 
-    /**
-     *
-     */
-    private void atualizarTabelas() {
-        modeloDwellingTime.setRowCount(0);
-        modeloQuantidades.setRowCount(0);
+        SwingUtilities.invokeLater(() -> {
 
-        String[] tipos = {"MOTA", "CARRO", "CAMIAO"};
+            modeloDwellingTime.setRowCount(0);
+            modeloQuantidades.setRowCount(0);
 
-        for (String tipo : tipos) {
-            EstatisticasTipo stats = estatisticasPorTipo.get(tipo);
+            String[] tipos = {"MOTA", "CARRO", "CAMIAO"};
 
-            // Dwelling time
-            if (stats.quantidade > 0) {
-                modeloDwellingTime.addRow(new Object[]{
-                        tipo,
-                        stats.dwellingTimeMin,
-                        String.format("%.1f", stats.getMedia()),
-                        stats.dwellingTimeMax
-                });
-            } else {
-                modeloDwellingTime.addRow(new Object[]{tipo, "-", "-", "-"});
+            for (String tipo : tipos) {
+
+                EstatisticasSaida stats = estatisticas.get(tipo);
+
+                if (stats != null) {
+
+                    // Dwelling Time
+                    if (stats.getQuantidade() > 0) {
+                        modeloDwellingTime.addRow(new Object[]{
+                                tipo,
+                                stats.getMinimo(),
+                                String.format("%.1f", stats.getMedia()),
+                                stats.getMaximo()
+                        });
+                    } else {
+                        modeloDwellingTime.addRow(new Object[]{tipo, "-", "-", "-"});
+                    }
+
+                    // Quantidades
+                    modeloQuantidades.addRow(new Object[]{
+                            tipo,
+                            stats.getQuantidade()
+                    });
+                }
             }
-
-            // Quantidades
-            modeloQuantidades.addRow(new Object[]{
-                    tipo,
-                    stats.quantidade
-            });
-        }
+        });
     }
 }

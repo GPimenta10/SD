@@ -2,7 +2,7 @@ package PontosEntrada;
 
 import Dashboard.Logs.TipoLog;
 import Rede.Mensagem;
-import Utils.EnviarLogs;
+import Logging.LogClienteDashboard;
 import Veiculo.TipoVeiculo;
 import Veiculo.Veiculo;
 
@@ -55,12 +55,12 @@ public class GeradorVeiculos extends Thread {
 
     @Override
     public void run() {
-        EnviarLogs.definirNomeProcesso(pontoEntrada.toString());
-        EnviarLogs.enviar(TipoLog.SISTEMA, "Gerador " + pontoEntrada.name() + " iniciado. Vai gerar " + limiteVeiculos + " veículos.");
+        LogClienteDashboard.definirNomeProcesso(pontoEntrada.toString());
+        LogClienteDashboard.enviar(TipoLog.SISTEMA, "Gerador " + pontoEntrada.name() + " iniciado. Vai gerar " + limiteVeiculos + " veículos.");
 
         try {
             while (ativo && contadorGerados.get() < limiteVeiculos) {
-                // Criar veículo
+                // Gerar veículo
                 Veiculo veiculo = gerarVeiculo();
 
                 // Determinar o primeiro cruzamento
@@ -83,13 +83,6 @@ public class GeradorVeiculos extends Thread {
                 // Incrementar contador
                 int totalGerado = contadorGerados.incrementAndGet();
 
-                // Debug comentado
-                /*
-                System.out.printf("[%s] Veículo %d/%d gerado: %s (%s)%n",
-                        pontoEntrada.name(), totalGerado, limiteVeiculos,
-                        veiculo.getId(), veiculo.getTipo());
-                */
-
                 if (totalGerado >= limiteVeiculos) {
                     break;
                 }
@@ -99,14 +92,17 @@ public class GeradorVeiculos extends Thread {
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            // Debug comentado:
-            // System.out.printf("[%s] Interrompido.%n", pontoEntrada.name());
         }
 
-        EnviarLogs.enviar(TipoLog.SUCESSO, "Gerador " + pontoEntrada.name() + " terminou (" +
+        LogClienteDashboard.enviar(TipoLog.SUCESSO, "Gerador " + pontoEntrada.name() + " terminou (" +
                 contadorGerados.get() + " veículos criados).");
     }
 
+    /**
+     * Gera um veículo aleatório com tipo e caminho.
+     *
+     * @return Novo veículo criado
+     */
     private Veiculo gerarVeiculo() {
         double p = ThreadLocalRandom.current().nextDouble();
         TipoVeiculo tipo;
@@ -126,6 +122,11 @@ public class GeradorVeiculos extends Thread {
         return new Veiculo(id, tipo, pontoEntrada, caminho);
     }
 
+    /**
+     * Envia um veículo para o primeiro cruzamento.
+     *
+     * @param veiculo Veículo a enviar
+     */
     private void enviarVeiculo(Veiculo veiculo) {
         try (Socket socket = new Socket(ipPrimeiroCruzamento, portaPrimeiroCruzamento);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
@@ -141,11 +142,14 @@ public class GeradorVeiculos extends Thread {
             out.println(json);
 
         } catch (IOException e) {
-            EnviarLogs.enviar(TipoLog.AVISO, "Falha ao enviar veículo " + veiculo.getId() +
+            LogClienteDashboard.enviar(TipoLog.AVISO, "Falha ao enviar veículo " + veiculo.getId() +
                     " a partir de " + pontoEntrada.name() + ": " + e.getMessage());
         }
     }
 
+    /**
+     * Notifica o Dashboard que um veículo foi gerado.
+     */
     private void notificarDashboard() {
         try (Socket socket = new Socket("localhost", 6000);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
@@ -163,6 +167,14 @@ public class GeradorVeiculos extends Thread {
         }
     }
 
+    /**
+     * Notifica o Dashboard sobre o movimento de um veículo.
+     *
+     * @param idVeiculo ID do veículo
+     * @param tipo Tipo do veículo
+     * @param origem Origem do movimento
+     * @param destino Destino do movimento
+     */
     private void notificarMovimento(String idVeiculo, String tipo, String origem, String destino) {
         try (Socket socket = new Socket("localhost", 6000);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {

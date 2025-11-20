@@ -1,103 +1,111 @@
 package Saida;
 
-import Dashboard.Logs.TipoLog;
+import Rede.Servidor;
 import Rede.Mensagem;
-import Utils.EnviarLogs;
+import Dashboard.Logs.TipoLog;
+import Logging.LogClienteDashboard;
 import Veiculo.Veiculo;
-
 import com.google.gson.Gson;
 
 import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.ServerSocket;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.Socket;
 
 /**
- * Servidor TCP da Saída.
- * Recebe mensagens JSON do tipo "VEICULO" enviadas pelos cruzamentos finais.
- * Apenas eventos importantes são enviados ao Dashboard.
+ *
  */
-public class ServidorSaida extends Thread {
-
-    private final int portaServidor;
+public class ServidorSaida extends Servidor {
     private final Saida saida;
     private final Gson gson = new Gson();
-    private volatile boolean ativo = true;
 
-    public ServidorSaida(int portaServidor, Saida saida) {
-        super("ServidorSaida");
-        this.portaServidor = portaServidor;
+    /**
+     * Construtor da classe
+     *
+     * @param porta
+     * @param saida
+     */
+    public ServidorSaida(int porta, Saida saida) {
+        super(porta, "ServidorSaida");
+
+        if (saida == null) {
+            throw new IllegalArgumentException("Instância de Saida não pode ser null");
+        }
+
         this.saida = saida;
         setDaemon(true);
     }
 
+    /**
+     *
+     */
     @Override
-    public void run() {
-       EnviarLogs.enviar(TipoLog.SISTEMA, "Servidor da Saída a escutar na porta " + portaServidor);
-
-        try (ServerSocket serverSocket = new ServerSocket(portaServidor)) {
-            while (ativo) {
-                Socket socket = serverSocket.accept();
-
-                // Debug comentado:
-                // System.out.println("[ServidorSaida] Nova conexão: " + socket.getRemoteSocketAddress());
-
-                new Thread(() -> tratarLigacao(socket)).start();
-            }
-        } catch (Exception e) {
-            if (ativo) {
-               EnviarLogs.enviar(TipoLog.ERRO, "Erro no servidor da Saída: " + e.getMessage());
-            } else {
-               EnviarLogs.enviar(TipoLog.SISTEMA, "Servidor da Saída encerrado.");
-            }
-        }
+    protected void onInicio() {
+        LogClienteDashboard.enviar(TipoLog.SISTEMA, "Servidor da Saída a escutar na porta " + porta);
     }
 
-    private void tratarLigacao(Socket socket) {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+    /**
+     *
+     *
+     * @param linha Linha JSON recebida
+     * @param leitor BufferedReader para ler mais dados se necessário
+     * @param escritor PrintWriter para enviar respostas
+     * @param socket Socket da conexão (para obter informações do cliente)
+     * @throws IOException
+     */
+    @Override
+    protected void tratarMensagem(String linha, BufferedReader leitor,
+                                  PrintWriter escritor, Socket socket) throws IOException {
+        Mensagem mensagem = Mensagem.fromJson(linha);
 
-            String linha;
-            while ((linha = in.readLine()) != null) {
+        if ("VEICULO".equalsIgnoreCase(mensagem.tipo())) {
+            Object objVeiculo = mensagem.conteudo().get("veiculo");
 
-                // Debug comentado:
-                // System.out.println("[ServidorSaida] Mensagem recebida: " + linha);
-
-                Mensagem mensagem = Mensagem.fromJson(linha);
-
-                // Debug comentado:
-                // System.out.println("[ServidorSaida] Tipo: " + mensagem.getTipo() + ", Origem: " + mensagem.getOrigem());
-
-                if ("VEICULO".equalsIgnoreCase(mensagem.getTipo())) {
-                    Object objVeiculo = mensagem.getConteudo().get("veiculo");
-
-                    if (objVeiculo == null) {
-                       EnviarLogs.enviar(TipoLog.AVISO, "Mensagem de saída inválida: campo 'veiculo' ausente.");
-                        continue;
-                    }
-
-                    Veiculo veiculo = gson.fromJson(gson.toJson(objVeiculo), Veiculo.class);
-
-                    // ESTE É O EVENTO IMPORTANTE → vai para o Dashboard
-                   EnviarLogs.enviar(TipoLog.VEICULO, "Veículo " + veiculo.getId() + " (" + veiculo.getTipo() + ") saiu do sistema via " + mensagem.getOrigem());
-
-                    // Processa saída internamente
-                    saida.registarVeiculo(veiculo);
-
-                } /*else {
-                    Debug comentado:
-                    System.out.println("[ServidorSaida] Mensagem ignorada (tipo=" + mensagem.getTipo() + ")");
-                }*/
+            if (objVeiculo == null) {
+                LogClienteDashboard.enviar(TipoLog.AVISO, "Mensagem de saída inválida: campo 'veiculo' ausente.");
+                return;
             }
-        } catch (Exception e) {
-           EnviarLogs.enviar(TipoLog.ERRO,"Erro ao processar ligação na Saída: " + e.getMessage());
+
+            Veiculo veiculo = gson.fromJson(gson.toJson(objVeiculo), Veiculo.class);
+
+            LogClienteDashboard.enviar(
+                    TipoLog.VEICULO,
+                    "Veículo " + veiculo.getId() + " (" + veiculo.getTipo() +
+                            ") saiu do sistema via " + mensagem.origem()
+            );
+
+            saida.registarVeiculo(veiculo);
         }
     }
 
     /**
-     * Para o servidor de forma controlada
+     *
+     *
+     * @param e
+     * @param socket
      */
-    public void pararServidor() {
-        ativo = false;
-        try (Socket s = new Socket("localhost", portaServidor)) {} catch (Exception ignored) {}
+    @Override
+    protected void onErroProcessamento(IOException e, Socket socket) {
+        LogClienteDashboard.enviar(TipoLog.ERRO, "Erro ao processar ligação na Saída: " + e.getMessage());
+    }
+
+    /**
+     *
+     *
+     * @param e
+     */
+    @Override
+    protected void onErroInicializacao(IOException e) {
+        LogClienteDashboard.enviar(TipoLog.ERRO, "Erro no servidor da Saída: " + e.getMessage());
+    }
+
+    /**
+     *
+     */
+    @Override
+    protected void onEncerramento() {
+        if (!ativo) {
+            LogClienteDashboard.enviar(TipoLog.SISTEMA, "Servidor da Saída encerrado.");
+        }
     }
 }

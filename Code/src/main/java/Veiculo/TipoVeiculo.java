@@ -2,7 +2,6 @@ package Veiculo;
 
 /**
  * Enum que define os tipos de veículos no sistema
- *
  * Relações de tempo respeitando o enunciado
  */
 public enum TipoVeiculo {
@@ -28,13 +27,4 @@ public enum TipoVeiculo {
         return fatorVelocidade;
     }
 
-    /**
-     * Calcula o tempo de deslocamento para este tipo
-     *
-     * @param tempoBaseCarro Tempo base de um carro
-     * @return Tempo de deslocamento ajustado
-     */
-    public double calcularTempoDeslocamento(double tempoBaseCarro) {
-        return (double) (tempoBaseCarro * fatorVelocidade);
-    }
 }

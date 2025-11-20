@@ -1,34 +1,47 @@
 package Saida;
 
 import Dashboard.Logs.TipoLog;
-import Utils.EnviarLogs;
+import Utils.ConfigLoader;
+import Logging.LogClienteDashboard;
+import com.google.gson.JsonObject;
 
 /**
- * Processo independente para a Saída.
+ * Processo principal para a Saída do sistema de tráfego.
+ *
+ * Carrega as configurações do ficheiro configMapa.json e inicializa o servidor
+ * que recebe veículos que completam o seu percurso no sistema.
  */
 public class SaidaMain {
-
     public static void main(String[] args) {
+        LogClienteDashboard.definirNomeProcesso("Saida");
+        LogClienteDashboard.enviar(TipoLog.SISTEMA, "Processo Saída iniciado");
 
-        // System.out.println("=".repeat(60));
-        // System.out.println("PROCESSO: Saída");
-        // System.out.println("=".repeat(60));
-        EnviarLogs.definirNomeProcesso("Saida");
-        EnviarLogs.enviar(TipoLog.SISTEMA, "Processo Saída iniciado");
+        // Carrega configuração do ficheiro JSON
+        JsonObject config = ConfigLoader.carregarSaida();
+        int portaServidor = config.get("portaServidor").getAsInt();
 
-        Saida saida = new Saida(5999, "localhost", 6000);
+        String ipDashboard = config.get("ipDashboard").getAsString();
+        int portaDashboard = config.get("portaDashboard").getAsInt();
+
+        // Inicializa a Saída com as configurações
+        Saida saida = new Saida(portaServidor, ipDashboard, portaDashboard);
         saida.iniciar();
-        EnviarLogs.enviar(TipoLog.SISTEMA, "Saída ligação: porta local 5999 → Dashboard 6000");
+
+        LogClienteDashboard.enviar(TipoLog.SISTEMA, String.format("Saída configurada: porta local %d → Dashboard %s:%d",
+                        portaServidor, ipDashboard, portaDashboard)
+        );
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-           EnviarLogs.enviar(TipoLog.SISTEMA, "A encerrar Saída");
+            LogClienteDashboard.enviar(TipoLog.SISTEMA, "A encerrar Saída");
             saida.parar();
         }));
 
         try {
-            while (true) Thread.sleep(1000);
+            while (true) {
+                Thread.sleep(1000);
+            }
         } catch (InterruptedException e) {
-           EnviarLogs.enviar(TipoLog.AVISO, "Saída interrompida: " + e.getMessage());
+            LogClienteDashboard.enviar(TipoLog.AVISO, "Saída interrompida: " + e.getMessage());
             saida.parar();
         }
     }

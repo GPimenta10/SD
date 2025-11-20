@@ -3,52 +3,35 @@ package Rede;
 import com.google.gson.Gson;
 import java.util.Map;
 
-public class Mensagem {
+// Esta classe foi convertida para um RECORD, pois funciona essencialmente
+// como um DTO (Data Transfer Object) usado para transporte de dados entre cruzamentos.
+// Records reduzem drasticamente o boilerplate (construtor, getters, toString),
+// reforçam a imutabilidade e tornam clara a intenção da classe.
+//
+// Mantém-se um construtor adicional para preencher automaticamente o timestamp.
+// Os métodos toJson() e fromJson() continuam a funcionar normalmente.
+//
+// Em Java 17+, esta é a abordagem mais limpa e adequada para objetos de mensagem.
+public record Mensagem(
+        String tipo,
+        String origem,
+        String destino,
+        Map<String, Object> conteudo,
+        long timestamp
+) {
 
-    private String tipo;          // Ex: "VEICULO", "ESTATISTICA", "CONTROLO"
-    private String origem;        // Ex: "Cr1"
-    private String destino;       // Ex: "Cr2" ou "Dashboard"
-    private Map<String, Object> conteudo; // Dados adicionais (veículo, fila, etc.)
-    private long timestamp;       // Momento de envio (para debug)
-
-    // Construtor principal
+    // Construtor secundário que atribui automaticamente o timestamp
     public Mensagem(String tipo, String origem, String destino, Map<String, Object> conteudo) {
-        this.tipo = tipo;
-        this.origem = origem;
-        this.destino = destino;
-        this.conteudo = conteudo;
-        this.timestamp = System.currentTimeMillis();
+        this(tipo, origem, destino, conteudo, System.currentTimeMillis());
     }
 
-    // Getters
-    public String getTipo() { return tipo; }
-    public String getOrigem() { return origem; }
-    public String getDestino() { return destino; }
-    public Map<String, Object> getConteudo() { return conteudo; }
-    public long getTimestamp() { return timestamp; }
-
-    // Converte o objeto para JSON (para envio)
+    // Serializar para JSON
     public String toJson() {
-        Gson gson = new Gson();
-        return gson.toJson(this);
+        return new Gson().toJson(this);
     }
 
-    // Reconstrói o objeto a partir de JSON (ao receber)
+    // Deserializar a partir de JSON
     public static Mensagem fromJson(String json) {
-        Gson gson = new Gson();
-        return gson.fromJson(json, Mensagem.class);
-    }
-
-    // Para debug
-    @Override
-    public String toString() {
-        return "Mensagem{" +
-                "tipo='" + tipo + '\'' +
-                ", origem='" + origem + '\'' +
-                ", destino='" + destino + '\'' +
-                ", conteudo=" + conteudo +
-                ", timestamp=" + timestamp +
-                '}';
+        return new Gson().fromJson(json, Mensagem.class);
     }
 }
-

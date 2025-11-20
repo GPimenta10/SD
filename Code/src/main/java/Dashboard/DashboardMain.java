@@ -4,6 +4,7 @@ import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.intellijthemes.FlatOneDarkIJTheme;
 
 import javax.swing.*;
+import Dashboard.Estatisticas.GestorEstatisticas;
 
 public class DashboardMain {
 
@@ -19,15 +20,19 @@ public class DashboardMain {
         System.setProperty("swing.aatext", "true");
 
         SwingUtilities.invokeLater(() -> {
-            DashboardFrame frame = new DashboardFrame();
-            ServidorDashboard servidor = new ServidorDashboard(6000, frame);
-            servidor.start();
 
+            GestorEstatisticas gestor = new GestorEstatisticas();
+
+            DashboardFrame frame = new DashboardFrame(gestor);
+
+            ServidorDashboard servidor = new ServidorDashboard(6000, frame, gestor);
+
+            servidor.start();
             frame.setVisible(true);
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 System.out.println("[DashboardMain] Encerrando Dashboard...");
-                servidor.parar();
+                servidor.onEncerramento();
             }));
         });
     }

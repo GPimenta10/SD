@@ -1,26 +1,23 @@
 package Dashboard.Paineis;
 
 import Dashboard.Utils.DashboardUIUtils;
-import com.google.gson.JsonArray;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.util.List;
 
 public class PainelInfoSaidaVeiculos extends JPanel {
 
-    private DefaultTableModel modeloTabela;
-    private JTable tabela;
-    private JScrollPane scrollPane;
+    private final DefaultTableModel modeloTabela;
+    private final JTable tabela;
 
     public PainelInfoSaidaVeiculos() {
 
-        // Layout e fundo modernos
         setLayout(new BorderLayout());
         setBackground(UIManager.getColor("Panel.background"));
 
-        // Border moderna do FlatLaf
         setBorder(BorderFactory.createTitledBorder(
                 UIManager.getBorder("TitledBorder.border"),
                 "Veículos que Saíram do Sistema",
@@ -29,9 +26,7 @@ public class PainelInfoSaidaVeiculos extends JPanel {
                 UIManager.getColor("Label.foreground")
         ));
 
-        // ============================
         // Modelo da tabela
-        // ============================
         String[] colunas = {"ID", "Tipo", "Percurso", "Tempo Total"};
         modeloTabela = new DefaultTableModel(colunas, 0) {
             @Override
@@ -39,25 +34,20 @@ public class PainelInfoSaidaVeiculos extends JPanel {
         };
 
         tabela = new JTable(modeloTabela);
-
-        // Estilo moderno aplicado
         DashboardUIUtils.configurarTabela(tabela);
 
-        // Larguras das colunas
+        // Larguras
         tabela.getColumnModel().getColumn(0).setPreferredWidth(100);
         tabela.getColumnModel().getColumn(1).setPreferredWidth(80);
-        tabela.getColumnModel().getColumn(2).setPreferredWidth(250);
+        tabela.getColumnModel().getColumn(2).setPreferredWidth(260);
         tabela.getColumnModel().getColumn(3).setPreferredWidth(90);
 
         // Ordenação
         TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(modeloTabela);
         tabela.setRowSorter(sorter);
-        sorter.setSortable(2, false); // percurso não é ordenável
+        sorter.setSortable(2, false); // percurso não ordenável
 
-        // ============================
-        // Scroll moderno
-        // ============================
-        scrollPane = new JScrollPane(tabela);
+        JScrollPane scrollPane = new JScrollPane(tabela);
         DashboardUIUtils.configurarScroll(scrollPane);
 
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
@@ -67,26 +57,32 @@ public class PainelInfoSaidaVeiculos extends JPanel {
     }
 
     /**
-     * Adiciona veículo à tabela
+     * Adiciona um veículo que saiu ao registo visual.
+     * Chamado diretamente pelo ServidorDashboard.
      */
-    public void adicionarVeiculoSaiu(String id, String tipo, String entrada, JsonArray caminho, double tempoTotal) {
+    public void adicionarVeiculoSaiu(String id,
+                                     String tipo,
+                                     String origem,
+                                     List<String> percurso,
+                                     long tempoTotalSegundos) {
 
         SwingUtilities.invokeLater(() -> {
 
-            // Percurso formatado
-            StringBuilder percurso = new StringBuilder(entrada);
-            for (int i = 0; i < caminho.size(); i++) {
-                percurso.append(" → ").append(caminho.get(i).getAsString());
+            // Constrói string do percurso
+            StringBuilder sb = new StringBuilder(origem);
+
+            for (String p : percurso) {
+                sb.append(" → ").append(p);
             }
 
             modeloTabela.addRow(new Object[]{
                     id,
                     tipo,
-                    percurso.toString(),
-                    String.format("%.2f", tempoTotal)
+                    sb.toString(),
+                    tempoTotalSegundos + " s"
             });
 
-            // Scroll automático para a última linha
+            // Scroll automático para última entrada
             int row = modeloTabela.getRowCount() - 1;
             if (row >= 0) {
                 tabela.scrollRectToVisible(tabela.getCellRect(row, 0, true));

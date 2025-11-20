@@ -40,13 +40,8 @@ public class ClienteCruzamentoDashboard extends Thread {
      */
     @Override
     public void run() {
-        // Debug opcional:
-        /*
-        System.out.printf("[DashboardCliente %s] Iniciado.%n",
-                cruzamento.getNomeCruzamento());
-        */
         try {
-            Thread.sleep(2000); // pequeno atraso inicial
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -80,11 +75,6 @@ public class ClienteCruzamentoDashboard extends Thread {
                 */
             }
         }
-        // Debug opcional:
-        /*
-        System.out.printf("[DashboardCliente %s] Encerrado.%n",
-                cruzamento.getNomeCruzamento());
-        */
     }
 
     /**

@@ -4,18 +4,28 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+/**
+ *
+ */
 public class Cliente {
+    private String endereco;
+    private int porta;
 
-    private String endereco; // IP ou hostname do servidor de destino
-    private int porta;       // Porta do servidor
-
+    /**
+     *
+     *
+     * @param endereco
+     * @param porta
+     */
     public Cliente(String endereco, int porta) {
         this.endereco = endereco;
         this.porta = porta;
     }
 
     /**
-     * Envia uma mensagem (objeto Mensagem) para o servidor indicado.
+     *
+     *
+     * @param msg
      */
     public void enviarMensagem(Mensagem msg) {
         try (Socket socket = new Socket(endereco, porta);
