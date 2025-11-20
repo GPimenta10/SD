@@ -5,7 +5,7 @@
 - [ ] Confirmar se o Json está a ser usado em todo o código
 - [ ] Rever classes e simplificar partes das mesmas (ter em conta o FPOO)  
 - [ ] Comentar código
-- [ ] ~~Retirar limite de fila / Aumentar limite~~
+- [x] ~~Retirar limite de fila / Aumentar limite~~
 - [X] ~~Criar classe para calcular estatísticas e enviar as mesmas ao dashboard~~ 
 - [X] ~~Mover o método da classe `Veiculo` (responsável por cálculos/estatísticas) para a nova classe de estatísticas~~
 
