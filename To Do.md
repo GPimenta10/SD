@@ -1,9 +1,10 @@
 ## Desenvolvimento
-- [ ] Adicionar mais um modo de simulação  
-- [ ] Criar menu para escolher carga  
-- [ ] Criar menu para escolher modo  
+- [ ] Rever classes e simplificar partes das mesmas (ter em conta o FPOO)
 - [ ] Confirmar se o Json está a ser usado em todo o código
-- [ ] Rever classes e simplificar partes das mesmas (ter em conta o FPOO)  
+- [ ] Tentar garantir que ao iniciar o main ele termine todos os processos java na máquina excepto aquele que está a ser executado no momento
+- [ ] Criar menu para escolher carga
+- [ ] Adicionar mais um modo de simulação  
+- [ ] Criar menu para escolher modo  
 - [ ] Comentar código
 - [x] ~~Retirar limite de fila / Aumentar limite~~
 - [X] ~~Criar classe para calcular estatísticas e enviar as mesmas ao dashboard~~ 
