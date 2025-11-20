@@ -2,11 +2,12 @@
 - [ ] Adicionar mais um modo de simulação  
 - [ ] Criar menu para escolher carga  
 - [ ] Criar menu para escolher modo  
-- [x] ~~Retirar limite de fila / Aumentar limite~~
-- [X] ~~Criar classe para calcular estatísticas e enviar as mesmas ao dashboard~~ 
-- [X] ~~Mover o método da classe `Veiculo` (responsável por cálculos/estatísticas) para a nova classe de estatísticas~~ 
+- [ ] Confirmar se o Json está a ser usado em todo o código
 - [ ] Rever classes e simplificar partes das mesmas (ter em conta o FPOO)  
-- [ ] Comentar código  
+- [ ] Comentar código
+- [ ] ~~Retirar limite de fila / Aumentar limite~~
+- [X] ~~Criar classe para calcular estatísticas e enviar as mesmas ao dashboard~~ 
+- [X] ~~Mover o método da classe `Veiculo` (responsável por cálculos/estatísticas) para a nova classe de estatísticas~~
 
 ## Relatório
 - [ ] Mostrar estrutura do projeto (não é preciso explicar classes e métodos)  
@@ -14,6 +15,8 @@
 
 ## Melhorias
 - [ ] Rever import das configs. Deve-se importar o endereço IP e Porta do ficheiro configMapa.json (Pode ficar para último)
+
+- [ ] Classe VeiculoNoMapa muito grande, deve ser decomposta em pequenas classes. O melhor é pedir ajuda ao Claude, ChatGPT quando ajudava retirava métodos e passava a funcionar de forma errática. Ideia seria ter uma classe para todos os cálculos e a classe VeiculoNoMapa passar a chamar esses métodos.
       
 - [x] ~~Dashboard.Utils.EventoMovimento. Classe simples que poderia estar em Dashboard ou Dashboard.Paineis. É específica do mapa, não é utilitário genérico. Não está a ser usada, era para tratar daquele stress de estar mais lento o mapa que o código, a meu ver pode ser eliminada bem como toda a lógica associada à mesma (é preciso ver noutras classes se existem métodos relativos a isto).~~
       
