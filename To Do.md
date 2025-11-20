@@ -34,7 +34,7 @@
             );
         }
       
-- [x] ~~Mensagem.java - Poderia usar record (Java 17+):~~~
+- [x] ~~Mensagem.java - Poderia usar record (Java 17+):~~
       
       public record Mensagem(
           String tipo,
