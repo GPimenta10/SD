@@ -60,6 +60,6 @@
         Extrair lógica de notificação para classe NotificadorEstatisticas
         Usar Streams API para simplificar getTotalGerado():
 
-- [ ] PainelMapa.java está muito grande (400+ linhas), extrair lógica de desenho para classes auxiliares: DesenharVias, DesenharNos, DesenharSemaforos, DesenharVeiculos. Extrair cálculos de posições para classe GestorPosicoes
+- [x] ~~PainelMapa.java está muito grande (400+ linhas), extrair lógica de desenho para classes auxiliares: DesenharVias, DesenharNos, DesenharSemaforos, DesenharVeiculos. Extrair cálculos de posições para classe GestorPosicoes~~
       
 - [x] ~~Utils EnviarLogs.java duplica funcionalidade de DashLogger.java~~
