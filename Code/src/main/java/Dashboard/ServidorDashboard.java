@@ -87,16 +87,23 @@ public class ServidorDashboard extends Servidor {
             try { nivel = TipoLog.valueOf(nivelTxt); }
             catch (Exception e) { nivel = TipoLog.AVISO; }
 
-            String ip = socketCliente.getInetAddress().getHostAddress();
+            // === CORREÇÃO: FILTRO DE MENSAGENS ===
+            // Só tenta adicionar ao painel se for uma mensagem de servidor a iniciar
+            if (mensagem.contains("escutar em") || mensagem.contains("iniciada em")) {
+                
+                String ip = socketCliente.getInetAddress().getHostAddress();
 
-            // Extrair porta
-            Pattern regex = Pattern.compile("porta\\s+(\\d+)");
-            Matcher matcher = regex.matcher(mensagem);
+                // Regex melhorada: Procura especificamente pelo padrão IP:Porta ou localhost:Porta
+                // Explicação: (localhost OU números.números...) SEGUIDO DE : SEGUIDO DE (digitos)
+                Pattern regex = Pattern.compile("(?:localhost|[\\d\\.]+):(\\d+)");
+                Matcher matcher = regex.matcher(mensagem);
 
-            if (matcher.find()) {
-                int porta = Integer.parseInt(matcher.group(1));
-                SwingUtilities.invokeLater(() -> dashboardFrame.getPainelServidores().adicionarServidor(processo, ip, porta)
-                );
+                if (matcher.find()) {
+                    int porta = Integer.parseInt(matcher.group(1));
+                    SwingUtilities.invokeLater(() -> 
+                        dashboardFrame.getPainelServidores().adicionarServidor(processo, ip, porta)
+                    );
+                }
             }
 
             DashLogger.log(nivel, "[" + processo + "] " + mensagem);
