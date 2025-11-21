@@ -1,23 +1,26 @@
 package PontosEntrada;
 
-import Dashboard.Logs.TipoLog;
-import Logging.LogClienteDashboard;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+import Dashboard.Logs.TipoLog;
+import Logging.LogClienteDashboard;
 
 /**
- *
+ * Processo responsável por gerir a entrada de veículos no sistema.
  */
 public class PontosEntradasMain {
+
     public static void main(String[] args) throws Exception {
-        // Por agora cenário fixo
-        String cargaSelecionada = "BAIXA";
+        
+        // ALTERAÇÃO 1: Ler a carga a partir dos argumentos recebidos do Main
+        // Se não houver argumentos (execução manual), assume "BAIXA"
+        String cargaSelecionada = (args.length > 0) ? args[0] : "BAIXA";
 
         Gson gson = new Gson();
 
@@ -26,7 +29,6 @@ public class PontosEntradasMain {
         JsonObject rootEntradas = gson.fromJson(jsonEntradas, JsonObject.class);
         JsonArray entradasJson = rootEntradas.getAsJsonArray("entradas");
 
-        // Usar todas as entradas disponíveis
         if (entradasJson.size() == 0) {
             LogClienteDashboard.enviar(TipoLog.ERRO, "Nenhuma entrada encontrada no ficheiro de configuração.");
             throw new IllegalArgumentException("Nenhuma entrada encontrada.");
@@ -37,12 +39,19 @@ public class PontosEntradasMain {
         // 2. LER CONFIGURAÇÃO DAS CARGAS
         String jsonCargas = readResourceAsString("configCargas.json");
         JsonObject rootCargas = gson.fromJson(jsonCargas, JsonObject.class);
+        
+        // Validação de segurança: se a carga não existir no JSON, usa default
+        if (!rootCargas.getAsJsonObject("cargas").has(cargaSelecionada)) {
+            LogClienteDashboard.enviar(TipoLog.AVISO, "Carga '" + cargaSelecionada + "' desconhecida. A usar 'BAIXA'.");
+            cargaSelecionada = "BAIXA";
+        }
+        
         JsonObject carga = rootCargas.getAsJsonObject("cargas").getAsJsonObject(cargaSelecionada);
 
         int totalVeiculos = carga.get("totalVeiculos").getAsInt();
         long intervaloMs = carga.get("intervaloMs").getAsLong();
 
-        // Log importante → cenário escolhido
+        // Log para confirmar que a escolha do menu foi assumida
         LogClienteDashboard.enviar(TipoLog.SISTEMA, "Geradores: cenário " + cargaSelecionada + " | Total veículos: " + totalVeiculos +
                 " | Intervalo: " + intervaloMs + " ms");
 
@@ -87,11 +96,7 @@ public class PontosEntradasMain {
     }
 
     /**
-     *
-     *
-     * @param resourceName
-     * @return
-     * @throws IOException
+     * Utilitário para ler ficheiros de recursos do JAR/Classpath.
      */
     private static String readResourceAsString(String resourceName) throws IOException {
         ClassLoader cl = PontosEntradasMain.class.getClassLoader();
