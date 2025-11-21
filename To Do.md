@@ -1,10 +1,11 @@
 ## Desenvolvimento
 - [ ] Rever classes e simplificar partes das mesmas (ter em conta o FPOO)
 - [ ] Confirmar se o Json está a ser usado em todo o código
-- [X] ~~Criar menu para escolher carga~~
 - [ ] Adicionar mais um modo de simulação  
-- [ ] Criar menu para escolher modo  
+- [ ] Criar menu para escolher modo
+- [ ] Adicionar código para ao fechar dashboard encerrar o programa. Terminar processos
 - [ ] Comentar código
+- [X] ~~Criar menu para escolher carga~~
 - [X] ~~Tentar garantir que ao iniciar o main ele termine todos os processos java na máquina excepto aquele que está a ser executado no momento~~
 - [x] ~~Retirar limite de fila / Aumentar limite~~
 - [X] ~~Criar classe para calcular estatísticas e enviar as mesmas ao dashboard~~ 
