@@ -1,9 +1,10 @@
-import Dashboard.Logs.TipoLog;
-import Logging.LogClienteDashboard;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+
+import Dashboard.Logs.TipoLog;
+import Logging.LogClienteDashboard;
+import Utils.ProcessCleaner;
 
 public class Main {
 
@@ -12,12 +13,10 @@ public class Main {
     private static String buildClasspath() {
         String separator = System.getProperty("path.separator");
 
-        // Usa JARs da pasta lib/ do projeto (relativo à raiz do projeto)
         String gsonPath = "lib/gson-2.13.1.jar";
         String flatLafPath = "lib/flatlaf-3.6.2.jar";
         String flatLafThemesPath = "lib/flatlaf-intellij-themes-3.6.2.jar";
 
-        // Validação: verifica se os JARs existem
         if (!new File(gsonPath).exists()) {
             System.err.println("ERRO: Gson JAR não encontrado em: " + new File(gsonPath).getAbsolutePath());
         }
@@ -41,9 +40,31 @@ public class Main {
         Process dashboardProc = null;
 
         try {
+            // ============================================================
+            // NOVO: Limpar processos de execuções anteriores
+            // ============================================================
+            System.out.println("=".repeat(60));
+            System.out.println("A verificar e limpar processos de execuções anteriores...");
+            System.out.println("=".repeat(60));
+            
+            int processosLimpos = ProcessCleaner.limparProcessosAnteriores();
+            
+            if (processosLimpos > 0) {
+                System.out.println("Aguardando portas ficarem disponíveis...");
+                if (!ProcessCleaner.aguardarPortasDisponiveis(5000)) {
+                    System.err.println("AVISO: Algumas portas ainda podem estar ocupadas.");
+                }
+            }
+            
+            System.out.println("=".repeat(60));
+            System.out.println("A iniciar nova execução do sistema...");
+            System.out.println("=".repeat(60));
+            // ============================================================
+
             // 1. DASHBOARD
             System.out.println("A iniciar o Dashboard");
-            dashboardProc = new ProcessBuilder("java", "-cp", CLASSPATH, "Dashboard.DashboardMain").inheritIO().start();
+            dashboardProc = new ProcessBuilder("java", "-cp", CLASSPATH, "Dashboard.DashboardMain")
+                    .inheritIO().start();
             processos.add(dashboardProc);
             Thread.sleep(2500);
 
@@ -51,7 +72,8 @@ public class Main {
 
             // 2. SAÍDA S
             LogClienteDashboard.enviar(TipoLog.SISTEMA, "A iniciar Saída");
-            Process saidaProc = new ProcessBuilder("java", "-cp", CLASSPATH, "Saida.SaidaMain").inheritIO().start();
+            Process saidaProc = new ProcessBuilder("java", "-cp", CLASSPATH, "Saida.SaidaMain")
+                    .inheritIO().start();
             processos.add(saidaProc);
             Thread.sleep(1000);
             LogClienteDashboard.enviar(TipoLog.SUCESSO, "Saída S ativa.");
@@ -61,15 +83,18 @@ public class Main {
 
             for (String cruzamento : cruzamentos) {
                 LogClienteDashboard.enviar(TipoLog.SISTEMA, "A iniciar Cruzamento " + cruzamento + "...");
-                Process cruzProc = new ProcessBuilder("java", "-cp", CLASSPATH, "Cruzamentos.CruzamentoMain", cruzamento).inheritIO().start();
+                Process cruzProc = new ProcessBuilder("java", "-cp", CLASSPATH, 
+                        "Cruzamentos.CruzamentoMain", cruzamento).inheritIO().start();
                 processos.add(cruzProc);
                 Thread.sleep(1500);
                 LogClienteDashboard.enviar(TipoLog.SUCESSO, "Cruzamento " + cruzamento + " ativo.");
             }
 
             // 4. GERADORES (todas as entradas: E1, E2, E3)
-            LogClienteDashboard.enviar(TipoLog.SISTEMA, "A iniciar geradores de veículos para todas as entradas (E1, E2, E3)");
-            Process geradoresProc = new ProcessBuilder("java", "-cp", CLASSPATH, "PontosEntrada.PontosEntradasMain").inheritIO().start();
+            LogClienteDashboard.enviar(TipoLog.SISTEMA, 
+                    "A iniciar geradores de veículos para todas as entradas (E1, E2, E3)");
+            Process geradoresProc = new ProcessBuilder("java", "-cp", CLASSPATH, 
+                    "PontosEntrada.PontosEntradasMain").inheritIO().start();
             processos.add(geradoresProc);
 
             LogClienteDashboard.enviar(TipoLog.SUCESSO, "Geradores iniciados.");
@@ -88,10 +113,12 @@ public class Main {
 
             encerrarProcessosBackend(processos, dashboardProc);
 
-            LogClienteDashboard.enviar(TipoLog.AVISO, "Dashboard continuará aberto até ser fechado manualmente.");
+            LogClienteDashboard.enviar(TipoLog.AVISO, 
+                    "Dashboard continuará aberto até ser fechado manualmente.");
 
             dashboardProc.waitFor();
             LogClienteDashboard.enviar(TipoLog.SISTEMA, "Dashboard encerrado pelo utilizador.");
+            
         } catch (Exception e) {
             LogClienteDashboard.enviar(TipoLog.ERRO, "Erro no Main: " + e.getMessage());
         } finally {
@@ -99,9 +126,6 @@ public class Main {
         }
     }
 
-    /**
-     * Encerra apenas processos backend (mantém Dashboard)
-     */
     private static void encerrarProcessosBackend(List<Process> todos, Process dashboard) {
         LogClienteDashboard.enviar(TipoLog.AVISO, "Encerrando processos backend");
 
@@ -110,16 +134,12 @@ public class Main {
                 p.destroy();
                 try {
                     p.waitFor();
-                } catch (InterruptedException ignored) {
-                }
+                } catch (InterruptedException ignored) {}
             }
         }
         LogClienteDashboard.enviar(TipoLog.SUCESSO, "Backend encerrado.");
     }
 
-    /**
-     * Encerra todos os processos (incluindo Dashboard)
-     */
     private static void encerrarProcessos(List<Process> processos) {
         LogClienteDashboard.enviar(TipoLog.SISTEMA, "A encerrar todos os processos.");
 
@@ -128,8 +148,7 @@ public class Main {
                 p.destroy();
                 try {
                     p.waitFor();
-                } catch (InterruptedException ignored) {
-                }
+                } catch (InterruptedException ignored) {}
             }
         }
         LogClienteDashboard.enviar(TipoLog.SISTEMA, "Todos os processos encerrados.");
