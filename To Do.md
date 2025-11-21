@@ -1,7 +1,7 @@
 ## Desenvolvimento
 - [ ] Rever classes e simplificar partes das mesmas (ter em conta o FPOO)
 - [ ] Confirmar se o Json está a ser usado em todo o código
-- [ ] Criar menu para escolher carga
+- [X] ~~Criar menu para escolher carga~~
 - [ ] Adicionar mais um modo de simulação  
 - [ ] Criar menu para escolher modo  
 - [ ] Comentar código
