@@ -1,40 +1,38 @@
 package Dashboard.Desenhar;
 
-import java.awt.*;
 import java.awt.geom.Point2D;
-import java.util.LinkedList;
-import java.util.Queue;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 /**
- * Representa um veículo animado no mapa do Dashboard.
- * Atualizada com tracking do percurso percorrido.
+ * Representa o estado de um veículo no mapa.
+ * Foca-se exclusivamente em dados de posição e movimento.
+ * A lógica matemática é delegada à classe utilitária CalculadoraMovimento.
+ * A lógica visual (cores) foi movida para DesenharVeiculos.
  */
 public class VeiculoNoMapa {
 
     // ===========================
-    //   CONSTANTES DE MOVIMENTO
+    //   CONSTANTES DE VELOCIDADE
     // ===========================
     private static final int DISTANCIA_FILA = 15;
     private static final double VELOCIDADE_MOTA = 2.0;
     private static final double VELOCIDADE_CARRO = 1.5;
     private static final double VELOCIDADE_CAMIAO = 1.0;
 
-    private static final int ESPACAMENTO_VIA_DUPLA = 10;
-
     // ===========================
-    //   IDENTIFICAÇÃO DO VEÍCULO
+    //   ESTADO
     // ===========================
     private final String id;
     private final String tipo;
     private final double velocidade;
     private final long timestampEntrada;
 
-    // ===========================
-    //   ESTADO ATUAL DO VEÍCULO
-    // ===========================
     private Point2D posicaoAtual;
+
+    // Posições lógicas (Nós do grafo: E1, Cr1, etc.) e ajustadas (visuais)
     private Point2D origem;
     private Point2D destino;
     private Point2D origemAjustada;
@@ -44,24 +42,16 @@ public class VeiculoNoMapa {
     private boolean parado;
     private int posicaoNaFila;
 
-    // ===========================
-    //   SEMÁFORO ASSOCIADO
-    // ===========================
+    // Semáforo
     private Point2D posicaoSemaforo;
     private String chaveSemaforo;
 
-    // ===========================
-    //   FILA DE SEGMENTOS
-    // ===========================
+    // Trajeto
     private final Queue<Segmento> filaSegmentos;
-
-    // ===========================
-    //   REGISTO DO CAMINHO
-    // ===========================
     private final List<String> caminhoPercorrido = new ArrayList<>();
 
     // ===========================
-    //   CLASSE DO SEGMENTO
+    //   CLASSE INTERNA (Dados do Segmento)
     // ===========================
     private static class Segmento {
         final String origemId;
@@ -76,19 +66,14 @@ public class VeiculoNoMapa {
         Segmento(String origemId, String destinoId, Point2D posOrigem,
                  Point2D posDestino, String chaveSemaforo, Point2D posSemaforo,
                  Point2D posOrigemAjustada, Point2D posDestinoAjustado) {
-
             this.origemId = origemId;
             this.destinoId = destinoId;
             this.posOrigem = posOrigem;
             this.posDestino = posDestino;
-
             this.chaveSemaforo = chaveSemaforo;
             this.posSemaforo = posSemaforo;
-
-            this.posOrigemAjustada =
-                    (posOrigemAjustada != null ? posOrigemAjustada : posOrigem);
-            this.posDestinoAjustado =
-                    (posDestinoAjustado != null ? posDestinoAjustado : posDestino);
+            this.posOrigemAjustada = (posOrigemAjustada != null ? posOrigemAjustada : posOrigem);
+            this.posDestinoAjustado = (posDestinoAjustado != null ? posDestinoAjustado : posDestino);
         }
     }
 
@@ -98,37 +83,28 @@ public class VeiculoNoMapa {
     public VeiculoNoMapa(String id, String tipo, Point2D origem, Point2D destino,
                          Point2D posicaoSemaforo, String chaveSemaforo,
                          Point2D origemAjustada, Point2D destinoAjustado) {
-
         this.id = id;
         this.tipo = tipo;
-
         this.origem = origem;
         this.destino = destino;
-
         this.origemAjustada = (origemAjustada != null ? origemAjustada : origem);
         this.destinoAjustado = (destinoAjustado != null ? destinoAjustado : destino);
-
         this.posicaoSemaforo = posicaoSemaforo;
         this.chaveSemaforo = chaveSemaforo;
 
-        this.posicaoAtual =
-                new Point2D.Double(this.origemAjustada.getX(), this.origemAjustada.getY());
-
+        this.posicaoAtual = new Point2D.Double(this.origemAjustada.getX(), this.origemAjustada.getY());
         this.progresso = 0.0;
         this.parado = false;
         this.posicaoNaFila = -1;
-
         this.filaSegmentos = new LinkedList<>();
         this.timestampEntrada = System.currentTimeMillis();
 
-        // Velocidade baseada no tipo
         this.velocidade = switch (tipo) {
             case "MOTA" -> VELOCIDADE_MOTA;
             case "CAMIAO" -> VELOCIDADE_CAMIAO;
             default -> VELOCIDADE_CARRO;
         };
 
-        // Registrar início do percurso
         caminhoPercorrido.add(origem.toString());
     }
 
@@ -137,52 +113,45 @@ public class VeiculoNoMapa {
     }
 
     public void adicionarProximoSegmento(String origemId, String destinoId, Point2D posOrigem, Point2D posDestino,
-                                  String chaveSemaforo, Point2D posSemaforo, Point2D posOrigemAjustada, Point2D posDestinoAjustado) {
-
+                                         String chaveSemaforo, Point2D posSemaforo,
+                                         Point2D posOrigemAjustada, Point2D posDestinoAjustado) {
         filaSegmentos.offer(new Segmento(
-                origemId, destinoId,
-                posOrigem, posDestino,
-                chaveSemaforo, posSemaforo,
-                posOrigemAjustada, posDestinoAjustado
+                origemId, destinoId, posOrigem, posDestino,
+                chaveSemaforo, posSemaforo, posOrigemAjustada, posDestinoAjustado
         ));
-
-        // Registrar caminho
         caminhoPercorrido.add(destinoId);
     }
 
     public void atualizar(boolean semaforoVerde, int posicaoFila) {
         this.posicaoNaFila = posicaoFila;
 
+        // 1. Verifica se mudamos de segmento
         if (chegouAoDestino() && !filaSegmentos.isEmpty()) {
             avancarParaProximoSegmento();
         }
 
+        // 2. Se estivermos parados e o sinal continuar vermelho/bloqueado
         if (parado && !semaforoVerde) {
-            pararNaFila();
+            aplicarPosicaoParagem();
             return;
         }
 
+        // 3. Movimento Normal
         parado = false;
         progresso += velocidade / 130.0;
         if (progresso > 1.0) progresso = 1.0;
 
-        double x = origemAjustada.getX()
-                + (destinoAjustado.getX() - origemAjustada.getX()) * progresso;
-        double y = origemAjustada.getY()
-                + (destinoAjustado.getY() - origemAjustada.getY()) * progresso;
+        // Delega cálculo da posição
+        posicaoAtual = CalculadoraMovimento.calcularPosicaoInterpolada(origemAjustada, destinoAjustado, progresso);
 
-        posicaoAtual.setLocation(x, y);
-
+        // 4. Verificar se deve parar na fila do semáforo
         if (!semaforoVerde && posicaoSemaforo != null && posicaoNaFila >= 0) {
+            boolean deveParar = CalculadoraMovimento.devePararNaFila(
+                    origem, posicaoSemaforo, posicaoAtual, posicaoNaFila, DISTANCIA_FILA
+            );
 
-            double distSemaforo = origem.distance(posicaoSemaforo);
-            double recuo = posicaoNaFila * DISTANCIA_FILA;
-
-            double distanciaParada = Math.max(0, distSemaforo - 30 - recuo);
-            double distPercorrida = origem.distance(posicaoAtual);
-
-            if (distPercorrida >= distanciaParada) {
-                pararNaFila();
+            if (deveParar) {
+                aplicarPosicaoParagem();
             }
         }
     }
@@ -193,10 +162,8 @@ public class VeiculoNoMapa {
 
         this.origem = seg.posOrigem;
         this.destino = seg.posDestino;
-
         this.origemAjustada = seg.posOrigemAjustada;
         this.destinoAjustado = seg.posDestinoAjustado;
-
         this.chaveSemaforo = seg.chaveSemaforo;
         this.posicaoSemaforo = seg.posSemaforo;
 
@@ -204,78 +171,34 @@ public class VeiculoNoMapa {
         this.parado = false;
     }
 
-    private void pararNaFila() {
+    private void aplicarPosicaoParagem() {
         parado = true;
-
-        if (posicaoSemaforo == null) return;
-
-        double dx = destinoAjustado.getX() - origemAjustada.getX();
-        double dy = destinoAjustado.getY() - origemAjustada.getY();
-
-        double dist = Math.hypot(dx, dy);
-        if (dist == 0) return;
-
-        double ux = dx / dist;
-        double uy = dy / dist;
-
-        double distSemaforo = origem.distance(posicaoSemaforo);
-        double recuo = posicaoNaFila * DISTANCIA_FILA;
-
-        double distanciaParada = Math.max(0, distSemaforo - 20 - recuo);
-
-        double x = origemAjustada.getX() + ux * distanciaParada;
-        double y = origemAjustada.getY() + uy * distanciaParada;
-
-        posicaoAtual.setLocation(x, y);
-        progresso = distanciaParada / dist;
+        // Delega cálculo do ponto exato de paragem
+        this.progresso = CalculadoraMovimento.calcularProgressoParagem(
+                origem, posicaoSemaforo, origemAjustada, destinoAjustado, posicaoNaFila, DISTANCIA_FILA
+        );
+        posicaoAtual = CalculadoraMovimento.calcularPosicaoInterpolada(origemAjustada, destinoAjustado, progresso);
     }
 
     public boolean ultrapassouSemaforo() {
-        if (posicaoSemaforo == null) return true;
-
-        double distTotal = origem.distance(destino);
-        if (distTotal == 0) return true;
-
-        double distSemaforo = origem.distance(posicaoSemaforo);
-        double progSemaforo = distSemaforo / distTotal;
-
-        return progresso > progSemaforo + 0.05;
-    }
-
-    boolean chegouAoDestino() {
-        return progresso >= 0.99;
+        return CalculadoraMovimento.ultrapassouSemaforo(origem, destino, posicaoSemaforo, progresso);
     }
 
     public boolean terminouTodosSegmentos() {
         return chegouAoDestino() && filaSegmentos.isEmpty();
     }
 
+    private boolean chegouAoDestino() {
+        return progresso >= 0.99;
+    }
+
+    // Getters
     public String getId() { return id; }
     public String getTipo() { return tipo; }
-    Point2D getPosicaoAtual() { return posicaoAtual; }
-    boolean isParado() { return parado; }
+    public Point2D getPosicaoAtual() { return posicaoAtual; }
+    public boolean isParado() { return parado; }
 
-    /**
-     * Remover se não for necessário
-     * @return
-     */
-    long getDwellingTimeSegundos() {
-        return (System.currentTimeMillis() - timestampEntrada) / 1000;
-    }
-
-    /**
-     * Remover se não for necessário
-     */
     public List<String> getCaminhoPercorrido() {
         return new ArrayList<>(caminhoPercorrido);
-    }
-
-    Color getCor() {
-        return switch (tipo) {
-            case "MOTA" -> new Color(255, 193, 7);   // Amarelo
-            case "CARRO" -> new Color(33, 150, 243); // Azul
-            case "CAMIAO" -> new Color(130, 109, 56);
-            default -> Color.GRAY;
-        };
     }
 }
