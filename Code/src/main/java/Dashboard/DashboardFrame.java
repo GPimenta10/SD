@@ -4,13 +4,19 @@ import Dashboard.Logs.DashLogger;
 import Dashboard.Paineis.*;
 import Dashboard.Utils.DashboardUIUtils;
 import Dashboard.Utils.MinimalScrollBarUI;
+
+// Novos imports devido à refatorização do pacote Estatisticas
 import Dashboard.Estatisticas.GestorEstatisticas;
+import Dashboard.Estatisticas.ReceiverEstatisticas;
+import Dashboard.Estatisticas.EstatisticasGlobais;
+import Dashboard.Estatisticas.EstatisticasFila;
+import Dashboard.Estatisticas.EstatisticasSaida;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.Map;
 
-public class DashboardFrame extends JFrame implements GestorEstatisticas.OuvinteEstatisticas {
+public class DashboardFrame extends JFrame implements ReceiverEstatisticas {
 
     private final GestorEstatisticas gestor;
 
@@ -96,24 +102,24 @@ public class DashboardFrame extends JFrame implements GestorEstatisticas.Ouvinte
     }
 
     // ==================================================
-    // CALLBACKS DO GESTOR
+    // CALLBACKS DO GESTOR (Tipos Atualizados)
     // ==================================================
 
     @Override
-    public void onEstatisticasGlobaisAtualizadas(GestorEstatisticas.EstatisticasGlobais globais) {
+    public void onEstatisticasGlobaisAtualizadas(EstatisticasGlobais globais) {
         SwingUtilities.invokeLater(() -> painelEstatsGlobais.atualizar(globais));
     }
 
     @Override
     public void onEstatisticasCruzamentoAtualizadas(String cruzamento,
-                                                    Map<String, GestorEstatisticas.EstatisticasFila> filas) {
+                                                    Map<String, EstatisticasFila> filas) {
         SwingUtilities.invokeLater(() ->
                 painelEstatsCruzamentos.atualizarCruzamento(cruzamento, filas)
         );
     }
 
     @Override
-    public void onEstatisticasSaidaAtualizadas(Map<String, GestorEstatisticas.EstatisticasSaida> saidas) {
+    public void onEstatisticasSaidaAtualizadas(Map<String, EstatisticasSaida> saidas) {
         SwingUtilities.invokeLater(() -> painelEstatsSaida.atualizar(saidas));
     }
 

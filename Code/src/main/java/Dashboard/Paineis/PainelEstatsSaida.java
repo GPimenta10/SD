@@ -1,12 +1,19 @@
 package Dashboard.Paineis;
 
-import Dashboard.Utils.DashboardUIUtils;
-import Dashboard.Estatisticas.GestorEstatisticas.EstatisticasSaida;
-
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.util.Map;
+
+import javax.swing.BorderFactory;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.table.DefaultTableModel;
+
+import Dashboard.Estatisticas.EstatisticasSaida;
+import Dashboard.Utils.DashboardUIUtils;
 
 /**
  * Painel de estatísticas de saída (dwelling time e quantidades).
