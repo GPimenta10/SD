@@ -20,7 +20,7 @@
 
 - [X] ~~Retirar a coluna mínimo da tabela Estatisticas de cada cruzamento. Esta tabela encontra-se do lado direito ao canto e é responsável  por mostrar, para cada cruzamento, o número atual, minimo, médio e máximo de veiculos que passaram em cada semaforo. Não faz sentido estar lá o mínimo pois vai ser sempre 0 (ou não passou veiculos ou passaram mas em algum momento foi 0).~~
       
-- [ ] Classe VeiculoNoMapa muito grande, deve ser decomposta em pequenas classes. O melhor é pedir ajuda ao Claude, ChatGPT quando ajudava retirava métodos e passava a funcionar de forma errática. Ideia seria ter uma classe para todos os cálculos e a classe VeiculoNoMapa passar a chamar esses métodos.
+- [X] ~~Classe VeiculoNoMapa muito grande, deve ser decomposta em pequenas classes. O melhor é pedir ajuda ao Claude, ChatGPT quando ajudava retirava métodos e passava a funcionar de forma errática. Ideia seria ter uma classe para todos os cálculos e a classe VeiculoNoMapa passar a chamar esses métodos.~~
       
 - [ ] GestorEstatisticas.java com problema: Classe muito grande (200+ linhas) com múltiplas responsabilidades. Simplificação:
         Separar DTOs (EstatisticasGlobais, EstatisticasFila, EstatisticasSaida) em ficheiro próprio
