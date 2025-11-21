@@ -1,7 +1,7 @@
 ## Desenvolvimento
 - [ ] Rever classes e simplificar partes das mesmas (ter em conta o FPOO)
 - [ ] Confirmar se o Json está a ser usado em todo o código
-- [ ] Tentar garantir que ao iniciar o main ele termine todos os processos java na máquina excepto aquele que está a ser executado no momento
+- [X] ~~Tentar garantir que ao iniciar o main ele termine todos os processos java na máquina excepto aquele que está a ser executado no momento~~
 - [ ] Criar menu para escolher carga
 - [ ] Adicionar mais um modo de simulação  
 - [ ] Criar menu para escolher modo  
