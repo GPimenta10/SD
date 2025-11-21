@@ -1,0 +1,11 @@
+{
+    "java.project.sourcePaths": [
+        "src",
+        "config"
+    ],
+    "java.project.referencedLibraries": [
+        "c:\\Users\\Gabriel\\Desktop\\Uni\\SD\\TP\\Code\\lib\\flatlaf-intellij-themes-3.6.2.jar",
+        "c:\\Users\\Gabriel\\Desktop\\Uni\\SD\\TP\\Code\\lib\\gson-2.13.1.jar",
+        "c:\\Users\\Gabriel\\Desktop\\Uni\\SD\\TP\\Code\\lib\\flatlaf-3.6.2.jar"
+    ]
+}
