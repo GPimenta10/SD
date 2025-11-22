@@ -1,15 +1,23 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package Dashboard.Desenhar;
 
 import java.awt.geom.Point2D;
 
 /**
  * Classe utilitária responsável pelos cálculos geométricos de movimento.
- * Extraída de VeiculoNoMapa para desacoplamento.
  */
 public class CalculadoraMovimento {
 
     /**
      * Calcula a posição atual baseada na interpolação linear entre origem e destino.
+     * 
+     * @param origem
+     * @param destino
+     * @param progresso
+     * @return 
      */
     public static Point2D calcularPosicaoInterpolada(Point2D origem, Point2D destino, double progresso) {
         double x = origem.getX() + (destino.getX() - origem.getX()) * progresso;
@@ -19,10 +27,16 @@ public class CalculadoraMovimento {
 
     /**
      * Calcula o progresso necessário para parar na fila antes do semáforo.
+     * 
+     * @param origemLogica
+     * @param semaforo
+     * @param origemAjustada
+     * @param destinoAjustado
+     * @param posicaoNaFila
+     * @param distanciaFila
+     * @return 
      */
-    public static double calcularProgressoParagem(Point2D origemLogica, Point2D semaforo, 
-                                                  Point2D origemAjustada, Point2D destinoAjustado,
-                                                  int posicaoNaFila, int distanciaFila) {
+    public static double calcularProgressoParagem(Point2D origemLogica, Point2D semaforo, Point2D origemAjustada, Point2D destinoAjustado, int posicaoNaFila, int distanciaFila) {
         if (semaforo == null) return 0.0;
 
         // Distância total visual do segmento
@@ -42,6 +56,13 @@ public class CalculadoraMovimento {
 
     /**
      * Verifica se a distância percorrida excede o ponto de paragem calculado.
+     * 
+     * @param origemLogica
+     * @param semaforo
+     * @param posicaoAtual
+     * @param posicaoNaFila
+     * @param distanciaFila
+     * @return 
      */
     public static boolean devePararNaFila(Point2D origemLogica, Point2D semaforo, Point2D posicaoAtual,
                                           int posicaoNaFila, int distanciaFila) {
@@ -59,6 +80,12 @@ public class CalculadoraMovimento {
 
     /**
      * Verifica se o veículo já passou fisicamente a posição do semáforo.
+     * 
+     * @param origemLogica
+     * @param destinoLogico
+     * @param semaforo
+     * @param progressoAtual
+     * @return 
      */
     public static boolean ultrapassouSemaforo(Point2D origemLogica, Point2D destinoLogico, 
                                               Point2D semaforo, double progressoAtual) {

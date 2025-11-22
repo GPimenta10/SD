@@ -33,10 +33,9 @@ public class Cliente {
 
             String json = msg.toJson();
             out.println(json);
-            System.out.println("[Cliente] Enviada: " + json);
-
         } catch (IOException e) {
             System.err.println("[Cliente] Erro ao enviar mensagem: " + e.getMessage());
         }
     }
 }
+

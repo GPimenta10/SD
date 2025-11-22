@@ -1,7 +1,7 @@
 package Cruzamentos;
 
-import Collections.Queue.LinkedQueue;
 import Collections.Exceptions.EmptyCollectionException;
+import Collections.Queue.LinkedQueue;
 import Veiculo.Veiculo;
 
 /**
@@ -9,7 +9,6 @@ import Veiculo.Veiculo;
  * Usa uma LinkedQueue como estrutura de dados subjacente.
  * A LinkedQueue usada, foi utilizada na UC Estrutura de Dados
  * Oferece métodos sincronizados para garantir segurança em concorrência.
- *
  */
 public class FilaVeiculos {
 
@@ -45,10 +44,6 @@ public class FilaVeiculos {
         }
 
         try {
-            // Log interno (comentado)
-            // System.out.printf("[FilaVeiculos] Veículo %s saiu da fila. Tamanho restante: %d%n",
-            //        v.getId(), filaVeiculos.size());
-
             return filaVeiculos.dequeue();
         } catch (EmptyCollectionException e) {
             return null;

@@ -1,4 +1,11 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package Dashboard.Paineis;
+
+import Dashboard.Estatisticas.EstatisticasSaida;
+import Dashboard.Utils.DashboardUIUtils;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -11,9 +18,6 @@ import javax.swing.JTable;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.table.DefaultTableModel;
-
-import Dashboard.Estatisticas.EstatisticasSaida;
-import Dashboard.Utils.DashboardUIUtils;
 
 /**
  * Painel de estatísticas de saída (dwelling time e quantidades).

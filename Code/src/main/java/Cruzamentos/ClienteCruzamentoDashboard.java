@@ -1,22 +1,22 @@
 package Cruzamentos;
 
+import Dashboard.Logs.TipoLog;
+import Logging.LogClienteDashboard;
+import Rede.Mensagem;
+import Rede.Cliente;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import com.google.gson.Gson;
-
-import Rede.Cliente;
-import Rede.Mensagem;
 
 /**
  * Thread responsável por enviar periodicamente o estado do cruzamento para o Dashboard.
  * O envio é contínuo enquanto o cruzamento estiver ativo.
  */
 public class ClienteCruzamentoDashboard extends Thread {
+    private static final long INTERVALO_KEEPALIVE_MS = 2000;
 
     private final Cruzamento cruzamento;
     private final Cliente clienteDashboard;
-    private final Gson gson = new Gson();
     private volatile boolean ativo = true;
 
     // Frequência de envio das estatísticas ao Dashboard
@@ -41,7 +41,7 @@ public class ClienteCruzamentoDashboard extends Thread {
     @Override
     public void run() {
         try {
-            Thread.sleep(2000);
+            Thread.sleep(INTERVALO_KEEPALIVE_MS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -68,11 +68,7 @@ public class ClienteCruzamentoDashboard extends Thread {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                // Erro técnico – manter silencioso para evitar spam
-                /*
-                System.err.printf("[DashboardCliente %s] Erro ao enviar estatísticas: %s%n",
-                        cruzamento.getNomeCruzamento(), e.getMessage());
-                */
+                LogClienteDashboard.enviar(TipoLog.ERRO,"[" + cruzamento.getNomeCruzamento() + "] Erro ao enviar estatísticas: " + e.getMessage());
             }
         }
     }
@@ -85,3 +81,4 @@ public class ClienteCruzamentoDashboard extends Thread {
         interrupt();
     }
 }
+

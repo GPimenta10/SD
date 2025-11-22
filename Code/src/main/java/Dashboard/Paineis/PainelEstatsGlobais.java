@@ -1,4 +1,11 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package Dashboard.Paineis;
+
+import Dashboard.Estatisticas.EstatisticasGlobais;
+import Dashboard.Utils.DashboardUIUtils;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -14,12 +21,9 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
-import Dashboard.Estatisticas.EstatisticasGlobais;
-import Dashboard.Utils.DashboardUIUtils;
-
 /**
  * Painel de Estatísticas Globais (somente UI).
- * Não calcula nada — recebe dados prontos do GestorEstatisticas.
+ * 
  */
 public class PainelEstatsGlobais extends JPanel {
 
@@ -30,7 +34,7 @@ public class PainelEstatsGlobais extends JPanel {
     private JLabel totalSaidaLabel;
 
     /**
-     * Construtor: constrói apenas a interface.
+     * Construtor da classe
      */
     public PainelEstatsGlobais() {
 
@@ -116,3 +120,4 @@ public class PainelEstatsGlobais extends JPanel {
         });
     }
 }
+

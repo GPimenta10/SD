@@ -8,31 +8,29 @@ import java.util.Queue;
 
 /**
  * Representa o estado de um veículo no mapa.
- * Foca-se exclusivamente em dados de posição e movimento.
- * A lógica matemática é delegada à classe utilitária CalculadoraMovimento.
- * A lógica visual (cores) foi movida para DesenharVeiculos.
+ * Velocidade ajustada para garantir visibilidade mesmo com carga alta.
  */
 public class VeiculoNoMapa {
 
-    // ===========================
-    //   CONSTANTES DE VELOCIDADE
-    // ===========================
+    // Constantes de movimento - VELOCIDADES REDUZIDAS para melhor visualização
     private static final int DISTANCIA_FILA = 15;
-    private static final double VELOCIDADE_MOTA = 2.0;
-    private static final double VELOCIDADE_CARRO = 1.5;
-    private static final double VELOCIDADE_CAMIAO = 1.0;
+    private static final double VELOCIDADE_MOTA = 2.5;   // Era 6.0
+    private static final double VELOCIDADE_CARRO = 2.0;  // Era 4.5
+    private static final double VELOCIDADE_CAMIAO = 1.5; // Era 3.0
+    private static final double DIVISOR_VELOCIDADE = 100.0;
+    private static final double PROGRESSO_MAXIMO = 1.0;
+    private static final double LIMIAR_CHEGADA = 0.99;
+    
+    // Tempo mínimo que um veículo deve estar visível (ms)
+    private static final long TEMPO_MINIMO_VISIVEL_MS = 800;
 
-    // ===========================
-    //   ESTADO
-    // ===========================
+    // Estado do veículo
     private final String id;
     private final String tipo;
     private final double velocidade;
-    private final long timestampEntrada;
+    private final long timestampCriacao;
 
     private Point2D posicaoAtual;
-
-    // Posições lógicas (Nós do grafo: E1, Cr1, etc.) e ajustadas (visuais)
     private Point2D origem;
     private Point2D destino;
     private Point2D origemAjustada;
@@ -49,10 +47,10 @@ public class VeiculoNoMapa {
     // Trajeto
     private final Queue<Segmento> filaSegmentos;
     private final List<String> caminhoPercorrido = new ArrayList<>();
+    
+    // Controlo de tempo por segmento
+    private long timestampInicioSegmento;
 
-    // ===========================
-    //   CLASSE INTERNA (Dados do Segmento)
-    // ===========================
     private static class Segmento {
         final String origemId;
         final String destinoId;
@@ -63,9 +61,9 @@ public class VeiculoNoMapa {
         final Point2D posOrigemAjustada;
         final Point2D posDestinoAjustado;
 
-        Segmento(String origemId, String destinoId, Point2D posOrigem,
-                 Point2D posDestino, String chaveSemaforo, Point2D posSemaforo,
-                 Point2D posOrigemAjustada, Point2D posDestinoAjustado) {
+        Segmento(String origemId, String destinoId, Point2D posOrigem, Point2D posDestino,
+                 String chaveSemaforo, Point2D posSemaforo, Point2D posOrigemAjustada,
+                 Point2D posDestinoAjustado) {
             this.origemId = origemId;
             this.destinoId = destinoId;
             this.posOrigem = posOrigem;
@@ -77,9 +75,6 @@ public class VeiculoNoMapa {
         }
     }
 
-    // ===========================
-    //       CONSTRUTOR
-    // ===========================
     public VeiculoNoMapa(String id, String tipo, Point2D origem, Point2D destino,
                          Point2D posicaoSemaforo, String chaveSemaforo,
                          Point2D origemAjustada, Point2D destinoAjustado) {
@@ -97,23 +92,44 @@ public class VeiculoNoMapa {
         this.parado = false;
         this.posicaoNaFila = -1;
         this.filaSegmentos = new LinkedList<>();
-        this.timestampEntrada = System.currentTimeMillis();
+        this.timestampCriacao = System.currentTimeMillis();
+        this.timestampInicioSegmento = System.currentTimeMillis();
 
-        this.velocidade = switch (tipo) {
+        this.velocidade = calcularVelocidade(tipo);
+        caminhoPercorrido.add(origem.toString());
+    }
+
+    private double calcularVelocidade(String tipo) {
+        return switch (tipo) {
             case "MOTA" -> VELOCIDADE_MOTA;
             case "CAMIAO" -> VELOCIDADE_CAMIAO;
             default -> VELOCIDADE_CARRO;
         };
-
-        caminhoPercorrido.add(origem.toString());
     }
 
-    public String getChaveSemaforo() {
-        return chaveSemaforo;
+    public String getId() { return id; }
+    public String getTipo() { return tipo; }
+    public Point2D getPosicaoAtual() { return posicaoAtual; }
+    public boolean isParado() { return parado; }
+    public List<String> getCaminhoPercorrido() { return new ArrayList<>(caminhoPercorrido); }
+
+    public boolean ultrapassouSemaforo() {
+        return CalculadoraMovimento.ultrapassouSemaforo(origem, destino, posicaoSemaforo, progresso);
     }
 
-    public void adicionarProximoSegmento(String origemId, String destinoId, Point2D posOrigem, Point2D posDestino,
-                                         String chaveSemaforo, Point2D posSemaforo,
+    public boolean terminouTodosSegmentos() {
+        if (!chegouAoDestino()) return false;
+        if (!filaSegmentos.isEmpty()) return false;
+        
+        // Garantir tempo mínimo de visualização
+        long tempoDecorrido = System.currentTimeMillis() - timestampInicioSegmento;
+        return tempoDecorrido >= TEMPO_MINIMO_VISIVEL_MS;
+    }
+
+    public String getChaveSemaforo() { return chaveSemaforo; }
+
+    public void adicionarProximoSegmento(String origemId, String destinoId, Point2D posOrigem,
+                                         Point2D posDestino, String chaveSemaforo, Point2D posSemaforo,
                                          Point2D posOrigemAjustada, Point2D posDestinoAjustado) {
         filaSegmentos.offer(new Segmento(
                 origemId, destinoId, posOrigem, posDestino,
@@ -125,31 +141,32 @@ public class VeiculoNoMapa {
     public void atualizar(boolean semaforoVerde, int posicaoFila) {
         this.posicaoNaFila = posicaoFila;
 
-        // 1. Verifica se mudamos de segmento
         if (chegouAoDestino() && !filaSegmentos.isEmpty()) {
-            avancarParaProximoSegmento();
+            // Verificar tempo mínimo antes de avançar
+            long tempoNoSegmento = System.currentTimeMillis() - timestampInicioSegmento;
+            if (tempoNoSegmento >= TEMPO_MINIMO_VISIVEL_MS) {
+                avancarParaProximoSegmento();
+            }
         }
 
-        // 2. Se estivermos parados e o sinal continuar vermelho/bloqueado
         if (parado && !semaforoVerde) {
             aplicarPosicaoParagem();
             return;
         }
 
-        // 3. Movimento Normal
         parado = false;
-        progresso += velocidade / 130.0;
-        if (progresso > 1.0) progresso = 1.0;
+        progresso += velocidade / DIVISOR_VELOCIDADE;
 
-        // Delega cálculo da posição
+        if (progresso > PROGRESSO_MAXIMO) {
+            progresso = PROGRESSO_MAXIMO;
+        }
+
         posicaoAtual = CalculadoraMovimento.calcularPosicaoInterpolada(origemAjustada, destinoAjustado, progresso);
 
-        // 4. Verificar se deve parar na fila do semáforo
         if (!semaforoVerde && posicaoSemaforo != null && posicaoNaFila >= 0) {
             boolean deveParar = CalculadoraMovimento.devePararNaFila(
                     origem, posicaoSemaforo, posicaoAtual, posicaoNaFila, DISTANCIA_FILA
             );
-
             if (deveParar) {
                 aplicarPosicaoParagem();
             }
@@ -169,36 +186,18 @@ public class VeiculoNoMapa {
 
         this.progresso = 0.0;
         this.parado = false;
+        this.timestampInicioSegmento = System.currentTimeMillis();
     }
 
     private void aplicarPosicaoParagem() {
         parado = true;
-        // Delega cálculo do ponto exato de paragem
         this.progresso = CalculadoraMovimento.calcularProgressoParagem(
                 origem, posicaoSemaforo, origemAjustada, destinoAjustado, posicaoNaFila, DISTANCIA_FILA
         );
         posicaoAtual = CalculadoraMovimento.calcularPosicaoInterpolada(origemAjustada, destinoAjustado, progresso);
     }
 
-    public boolean ultrapassouSemaforo() {
-        return CalculadoraMovimento.ultrapassouSemaforo(origem, destino, posicaoSemaforo, progresso);
-    }
-
-    public boolean terminouTodosSegmentos() {
-        return chegouAoDestino() && filaSegmentos.isEmpty();
-    }
-
     private boolean chegouAoDestino() {
-        return progresso >= 0.99;
-    }
-
-    // Getters
-    public String getId() { return id; }
-    public String getTipo() { return tipo; }
-    public Point2D getPosicaoAtual() { return posicaoAtual; }
-    public boolean isParado() { return parado; }
-
-    public List<String> getCaminhoPercorrido() {
-        return new ArrayList<>(caminhoPercorrido);
+        return progresso >= LIMIAR_CHEGADA;
     }
 }

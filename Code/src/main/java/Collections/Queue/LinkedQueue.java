@@ -1,7 +1,6 @@
 package Collections.Queue;
 
 import Collections.Exceptions.EmptyCollectionException;
-import Collections.Queue.Node;
 
 import java.security.InvalidParameterException;
 

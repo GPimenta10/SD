@@ -1,8 +1,10 @@
 package Cruzamentos;
 
-import Rede.Cliente;
-import Rede.Mensagem;
+import Dashboard.Logs.TipoLog;
+import Logging.LogClienteDashboard;
 import Veiculo.Veiculo;
+import Rede.Mensagem;
+import Rede.Cliente;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,6 +14,7 @@ import java.util.Map;
  * ao próximo cruzamento ou à Saída.
  */
 public class ClienteCruzamento extends Thread {
+    private static final long INTERVALO_KEEPALIVE_MS = 5000;
 
     private final String nomeCruzamentoDestino;
     private final Cliente clienteGenerico;
@@ -26,7 +29,6 @@ public class ClienteCruzamento extends Thread {
      */
     public ClienteCruzamento(String nomeCruzamentoDestino, String ipDestino, int portaDestino) {
         super("Cliente->" + nomeCruzamentoDestino);
-
         this.nomeCruzamentoDestino = nomeCruzamentoDestino;
         this.clienteGenerico = new Cliente(ipDestino, portaDestino);
     }
@@ -35,7 +37,7 @@ public class ClienteCruzamento extends Thread {
     public void run() {
         while (ativo) {
             try {
-                Thread.sleep(5000);
+                Thread.sleep(INTERVALO_KEEPALIVE_MS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -49,6 +51,15 @@ public class ClienteCruzamento extends Thread {
      * @param origem  Cruzamento de onde o veículo veio
      */
     public void enviarVeiculo(Veiculo veiculo, String origem) {
+        if (veiculo == null) {
+            LogClienteDashboard.enviar(TipoLog.AVISO, "Tentativa de enviar veículo null ignorada");
+            return;
+        }
+        if (origem == null || origem.trim().isEmpty()) {
+            LogClienteDashboard.enviar(TipoLog.AVISO, "Origem inválida ao enviar veículo");
+            return;
+        }
+
         try {
             Map<String, Object> conteudo = new HashMap<>();
             conteudo.put("veiculo", veiculo);
@@ -62,7 +73,9 @@ public class ClienteCruzamento extends Thread {
             );
 
             clienteGenerico.enviarMensagem(mensagem);
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            LogClienteDashboard.enviar(TipoLog.ERRO, "Falha ao enviar veículo para " + nomeCruzamentoDestino + ": " + e.getMessage());
+        }
     }
 
     /**
@@ -73,3 +86,4 @@ public class ClienteCruzamento extends Thread {
         interrupt();
     }
 }
+

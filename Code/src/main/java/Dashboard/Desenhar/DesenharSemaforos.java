@@ -1,14 +1,17 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package Dashboard.Desenhar;
 
-import java.awt.*;
 import java.awt.geom.Point2D;
 import java.util.Map;
+import java.awt.*;
 
 /**
  * Responsável por desenhar os semáforos no mapa do Dashboard.
  */
 public class DesenharSemaforos {
-
     private static final int TAMANHO_SEMAFORO = 12;
 
     /**
@@ -43,3 +46,4 @@ public class DesenharSemaforos {
         }
     }
 }
+

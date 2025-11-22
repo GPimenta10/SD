@@ -1,18 +1,30 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package Dashboard.Paineis;
 
 import Dashboard.Utils.DashboardUIUtils;
 
-import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
-import java.awt.*;
 import java.util.List;
+import javax.swing.*;
+import java.awt.*;
 
+/**
+ * 
+ * 
+ */
 public class PainelInfoSaidaVeiculos extends JPanel {
 
     private final DefaultTableModel modeloTabela;
     private final JTable tabela;
-
+    
+    /**
+     * 
+     * 
+     */
     public PainelInfoSaidaVeiculos() {
 
         setLayout(new BorderLayout());
@@ -59,13 +71,14 @@ public class PainelInfoSaidaVeiculos extends JPanel {
     /**
      * Adiciona um veículo que saiu ao registo visual.
      * Chamado diretamente pelo ServidorDashboard.
+     * 
+     * @param id
+     * @param tipo
+     * @param origem
+     * @param percurso
+     * @param tempoTotalSegundos 
      */
-    public void adicionarVeiculoSaiu(String id,
-                                     String tipo,
-                                     String origem,
-                                     List<String> percurso,
-                                     long tempoTotalSegundos) {
-
+    public void adicionarVeiculoSaiu(String id, String tipo, String origem, List<String> percurso, long tempoTotalSegundos) {
         SwingUtilities.invokeLater(() -> {
 
             // Constrói string do percurso
@@ -90,3 +103,4 @@ public class PainelInfoSaidaVeiculos extends JPanel {
         });
     }
 }
+

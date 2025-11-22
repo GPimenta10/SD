@@ -21,6 +21,23 @@ public class ConfigLoader {
     private static JsonObject configCache = null;
 
     /**
+     * Carrega o ficheiro configMapa.json do classpath para o cache.
+     *
+     * @throws Exception se o ficheiro não for encontrado ou for inválido
+     */
+    private static void carregarFicheiroConfig() throws Exception {
+        var inputStream = ConfigLoader.class.getResourceAsStream(CONFIG_FILE);
+
+        if (inputStream == null) {
+            throw new Exception("Ficheiro " + CONFIG_FILE + " não encontrado no classpath (src/resources/)");
+        }
+
+        try (var reader = new java.io.InputStreamReader(inputStream)) {
+            configCache = gson.fromJson(reader, JsonObject.class);
+        }
+    }
+
+    /**
      * Carrega e retorna uma secção específica do ficheiro configMapa.json.
      *
      * Utiliza cache para evitar múltiplas leituras do ficheiro.
@@ -44,23 +61,6 @@ public class ConfigLoader {
     }
 
     /**
-     * Carrega o ficheiro configMapa.json do classpath para o cache.
-     *
-     * @throws Exception se o ficheiro não for encontrado ou for inválido
-     */
-    private static void carregarFicheiroConfig() throws Exception {
-        var inputStream = ConfigLoader.class.getResourceAsStream(CONFIG_FILE);
-
-        if (inputStream == null) {
-            throw new Exception("Ficheiro " + CONFIG_FILE + " não encontrado no classpath (src/resources/)");
-        }
-
-        try (var reader = new java.io.InputStreamReader(inputStream)) {
-            configCache = gson.fromJson(reader, JsonObject.class);
-        }
-    }
-
-    /**
      * Carrega a configuração da Saída.
      *
      * @return JsonObject com configuração da saída (porta, IP e porta do Dashboard)
@@ -76,6 +76,24 @@ public class ConfigLoader {
      */
     public static JsonObject carregarDashboard() {
         return carregarSecao("dashboard");
+    }
+
+    /**
+     * Carrega a configuração das Entradas
+     *
+     * @return JsonArray com configuração das entradas
+     */
+    public static JsonArray carregarEntradas() {
+        try {
+            if (configCache == null) {
+                carregarFicheiroConfig();
+            }
+            return configCache.getAsJsonArray("entradas");
+        } catch (Exception e) {
+            System.err.println("ERRO: Não foi possível carregar entradas - " + e.getMessage());
+            System.exit(1);
+            return null;
+        }
     }
 
     /**

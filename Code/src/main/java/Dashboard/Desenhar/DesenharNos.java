@@ -1,13 +1,17 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package Dashboard.Desenhar;
 
-import java.awt.*;
 import java.awt.geom.Point2D;
+import java.awt.*;
+
 
 /**
  * Responsável pelo desenho dos nós no mapa (entradas, cruzamentos e saída).
  */
 public class DesenharNos {
-
     private static final int LARGURA_CRUZAMENTO = 60;
     private static final int ALTURA_CRUZAMENTO = 40;
 

@@ -1,11 +1,15 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package Dashboard.Paineis;
 
 import Dashboard.Utils.DashboardUIUtils;
 
-import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
 import java.util.Map;
+import javax.swing.*;
+import java.awt.*;
 
 /**
  * Painel que mostra quantos veículos de cada tipo passaram por cada cruzamento.
@@ -59,9 +63,6 @@ public class PainelResumoCruzamento extends JPanel {
     /**
      * Atualiza toda a tabela com os dados fornecidos pelo GestorEstatisticas.
      *
-     * Chamado pelo DashboardFrame dentro de:
-     *
-     *   public void onResumoCruzamentosAtualizado(Map<String, Map<String, Integer>> resumo)
      */
     public void atualizar(Map<String, Map<String, Integer>> resumo) {
         if (resumo == null) return;
@@ -85,7 +86,6 @@ public class PainelResumoCruzamento extends JPanel {
                 modelo.setValueAt(camioes, i, 3);
                 modelo.setValueAt(total,   i, 4);
             }
-
         });
     }
 }

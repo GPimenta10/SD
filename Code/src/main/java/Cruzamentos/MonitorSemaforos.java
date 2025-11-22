@@ -13,6 +13,9 @@ public class MonitorSemaforos {
      * @param total
      */
     public MonitorSemaforos(int total) {
+        if (total <= 0) {
+            throw new IllegalArgumentException("Total de semáforos deve ser maior que zero");
+        }
         this.total = total;
     }
 
@@ -23,6 +26,9 @@ public class MonitorSemaforos {
      * @throws InterruptedException
      */
     public synchronized void esperarVez(int id) throws InterruptedException {
+        if (id < 0 || id >= total) {
+            throw new IllegalArgumentException("ID de semáforo inválido: " + id);
+        }
         while (turno != id)
             wait();
     }
@@ -44,3 +50,4 @@ public class MonitorSemaforos {
         notifyAll();
     }
 }
+

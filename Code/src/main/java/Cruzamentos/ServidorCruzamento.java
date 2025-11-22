@@ -1,17 +1,18 @@
 package Cruzamentos;
 
+import Logging.LogClienteDashboard;
+import Dashboard.Logs.TipoLog;
+import Veiculo.Veiculo;
+import Rede.Mensagem;
+import Rede.Servidor;
+
+import com.google.gson.Gson;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-import com.google.gson.Gson;
-
-import Dashboard.Logs.TipoLog;
-import Logging.LogClienteDashboard;
-import Rede.Mensagem;
-import Rede.Servidor;
-import Veiculo.Veiculo;
 
 /**
  *

@@ -1,6 +1,9 @@
 package Logging;
 
+import Utils.ConfigLoader;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.HashMap;
@@ -21,10 +24,27 @@ public class LogSender {
 
     private static final Gson gson = new Gson();
 
-    private static final String HOST = "localhost";
-    private static final int PORT = 6000;
+    private static String host = null;
+    private static int port = -1;
 
     private LogSender() {}
+
+    /**
+     * Carrega configuração do Dashboard (lazy loading)
+     */
+    private static void carregarConfiguracao() {
+        if (host == null) {
+            try {
+                JsonObject config = ConfigLoader.carregarDashboard();
+                host = config.get("ipServidor").getAsString();
+                port = config.get("portaServidor").getAsInt();
+            } catch (Exception e) {
+                // Fallback para valores padrão
+                host = "localhost";
+                port = 6000;
+            }
+        }
+    }
 
     /**
      * Envia um log genérico para o Dashboard através de socket TCP.
@@ -35,7 +55,9 @@ public class LogSender {
      * @param mensagem   Conteúdo textual do log
      */
     public static void enviar(String tipo, String origem, String nivel, String mensagem) {
-        try (Socket socket = new Socket(HOST, PORT);
+        carregarConfiguracao();
+
+        try (Socket socket = new Socket(host, port);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
             Map<String, Object> json = new HashMap<>();

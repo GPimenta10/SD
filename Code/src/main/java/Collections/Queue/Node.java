@@ -18,7 +18,7 @@ class Node<T> {
     /**
      * Obter o próximo elemento do nó do atual
      *
-     * @return
+     * @return O próximo nó
      */
     public Node<T> getNext(){
         return this.next;

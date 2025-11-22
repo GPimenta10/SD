@@ -1,12 +1,12 @@
 package Saida;
 
+import Logging.LogClienteDashboard;
+import Dashboard.Logs.TipoLog;
+import Veiculo.Veiculo;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import Dashboard.Logs.TipoLog;
-import Logging.LogClienteDashboard;
-import Veiculo.Veiculo;
 
 /**
  * Representa o ponto de saída do sistema de tráfego.
@@ -112,7 +112,7 @@ public class Saida {
         veiculosSaidos.add(veiculo);
 
         LogClienteDashboard.enviar(TipoLog.VEICULO, String.format("Veículo %s (%s) saiu do sistema. Tempo total: %.2f s",
-                        veiculo.getId(), veiculo.getTipo(), tempoTotalSegundos)
+                veiculo.getId(), veiculo.getTipo(), tempoTotalSegundos)
         );
 
         clienteSaidaDash.enviarVeiculoSaiu(veiculo, tempoTotalSegundos);

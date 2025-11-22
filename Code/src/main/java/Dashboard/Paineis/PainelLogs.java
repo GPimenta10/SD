@@ -1,7 +1,11 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package Dashboard.Paineis;
 
-import Dashboard.Logs.TipoLog;
 import Dashboard.Utils.DashboardUIUtils;
+import Dashboard.Logs.TipoLog;
 
 import javax.swing.*;
 import javax.swing.text.*;
@@ -11,11 +15,10 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * Painel que exibe logs importantes do sistema, modernizado para FlatLaf OneDark.
+ * 
  */
 public class PainelLogs extends JPanel {
-
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss");
-    private static final int MAX_LOGS = 100;
 
     private final JTextPane areaLogs;
     private final JScrollPane scrollPane;
@@ -76,19 +79,19 @@ public class PainelLogs extends JPanel {
     }
 
     /**
-     * Estilos de cor dos logs (cores Dracula / IntelliJ)
+     * 
      */
     private void inicializarEstilos() {
 
-        estiloSistema     = criarEstilo(new Color(248, 248, 242));  // Branco
-        estiloGerador     = criarEstilo(new Color(80, 250, 123));   // Verde claro
-        estiloVeiculo     = criarEstilo(new Color(139, 233, 253));  // Azul claro
-        estiloAviso       = criarEstilo(new Color(241, 250, 140));  // Amarelo
-        estiloCruzamento  = criarEstilo(new Color(189, 147, 249));  // Roxo
-        estiloFila        = criarEstilo(new Color(255, 184, 108));  // Laranja
-        estiloSemaforo    = criarEstilo(new Color(255, 121, 198));  // Rosa
-        estiloErro        = criarEstilo(new Color(255, 85, 85));    // Vermelho
-        estiloSucesso     = criarEstilo(new Color(80, 250, 123));   // Verde
+        estiloSistema     = criarEstilo(new Color(248, 248, 242));  
+        estiloGerador     = criarEstilo(new Color(80, 250, 123));   
+        estiloVeiculo     = criarEstilo(new Color(139, 233, 253));  
+        estiloAviso       = criarEstilo(new Color(241, 250, 140));  
+        estiloCruzamento  = criarEstilo(new Color(189, 147, 249));  
+        estiloFila        = criarEstilo(new Color(255, 184, 108));  
+        estiloSemaforo    = criarEstilo(new Color(255, 121, 198));  
+        estiloErro        = criarEstilo(new Color(255, 85, 85));   
+        estiloSucesso     = criarEstilo(new Color(80, 250, 123));  
     }
 
     /**
@@ -102,6 +105,9 @@ public class PainelLogs extends JPanel {
 
     /**
      * Adiciona um log com timestamp e cor baseada no tipo
+     * 
+     * @param tipo
+     * @param mensagem 
      */
     public void adicionarLog(TipoLog tipo, String mensagem) {
         SwingUtilities.invokeLater(() -> {

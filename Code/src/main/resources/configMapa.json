@@ -9,6 +9,23 @@
     "ipDashboard": "localhost",
     "portaDashboard": 6000
   },
+  "entradas": [
+    {
+      "id": "E1",
+      "cruzamentoHost": "localhost",
+      "cruzamentoPorta": 5001
+    },
+    {
+      "id": "E2",
+      "cruzamentoHost": "localhost",
+      "cruzamentoPorta": 5002
+    },
+    {
+      "id": "E3",
+      "cruzamentoHost": "localhost",
+      "cruzamentoPorta": 5003
+    }
+  ],
   "cruzamentos": [
     {
       "nome": "Cr1",

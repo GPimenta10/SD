@@ -1,51 +1,83 @@
 package Dashboard;
 
-import java.io.BufferedReader;
-import java.io.PrintWriter;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.swing.SwingUtilities;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
 import Dashboard.Estatisticas.GestorEstatisticas;
 import Dashboard.Logs.DashLogger;
 import Dashboard.Logs.TipoLog;
 import Rede.Servidor;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
+import com.google.gson.Gson;
+
+import javax.swing.SwingUtilities;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.io.BufferedReader;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.net.Socket;
+import java.util.List;
+
+/**
+ * 
+ *
+ */
 public class ServidorDashboard extends Servidor {
 
     private final DashboardFrame dashboardFrame;
     private final GestorEstatisticas gestor;
     private final Gson gson = new Gson();
-
+    
+    /**
+     * 
+     * 
+     * @param ip
+     * @param porta
+     * @param dashboardFrame
+     * @param gestor 
+     */
     public ServidorDashboard(String ip, int porta, DashboardFrame dashboardFrame, GestorEstatisticas gestor) {
         super(ip, porta, "ServidorDashboard");
         this.dashboardFrame = dashboardFrame;
         this.gestor = gestor;
     }
-
+    
+    /**
+     * 
+     */
     @Override
     protected void onInicio() {
         DashLogger.log(TipoLog.SISTEMA, "Dashboard a escutar em " + ip + ":" + porta);
     }
-
+    
+    /**
+     * 
+     * 
+     * @param linha
+     * @param leitor
+     * @param escritor
+     * @param socket 
+     */
     @Override
     protected void tratarMensagem(String linha, BufferedReader leitor, PrintWriter escritor, Socket socket) {
         processarMensagem(linha, socket);
     }
-
+    
+    /**
+     * 
+     */
     @Override
     protected void onEncerramento() {
         DashLogger.log(TipoLog.SISTEMA, "Servidor Dashboard encerrado");
     }
-
+    
+    /**
+     * 
+     * 
+     * @param json
+     * @param socket 
+     */
     private void processarMensagem(String json, Socket socket) {
         try {
             JsonObject obj = gson.fromJson(json, JsonObject.class);
@@ -63,6 +95,7 @@ public class ServidorDashboard extends Servidor {
                 case "VEICULO_MOVIMENTO" -> processarVeiculoMovimento(obj);
                 case "ESTATISTICA" -> processarEstatisticaCruzamento(obj);
                 case "LOG" -> processarLog(obj, socket);
+                case "ESTATISTICA_SAIDA" -> {}
                 default -> DashLogger.log(TipoLog.AVISO, "Mensagem desconhecida: " + tipo);
             }
 
@@ -70,7 +103,13 @@ public class ServidorDashboard extends Servidor {
             DashLogger.log(TipoLog.ERRO, "Erro ao interpretar JSON: " + e.getMessage());
         }
     }
-
+    
+    /**
+     * 
+     * 
+     * @param jsonObjeto
+     * @param socketCliente 
+     */
     private void processarLog(JsonObject jsonObjeto, Socket socketCliente) {
         try {
 
@@ -87,14 +126,9 @@ public class ServidorDashboard extends Servidor {
             try { nivel = TipoLog.valueOf(nivelTxt); }
             catch (Exception e) { nivel = TipoLog.AVISO; }
 
-            // === CORREÇÃO: FILTRO DE MENSAGENS ===
-            // Só tenta adicionar ao painel se for uma mensagem de servidor a iniciar
             if (mensagem.contains("escutar em") || mensagem.contains("iniciada em")) {
-                
                 String ip = socketCliente.getInetAddress().getHostAddress();
 
-                // Regex melhorada: Procura especificamente pelo padrão IP:Porta ou localhost:Porta
-                // Explicação: (localhost OU números.números...) SEGUIDO DE : SEGUIDO DE (digitos)
                 Pattern regex = Pattern.compile("(?:localhost|[\\d\\.]+):(\\d+)");
                 Matcher matcher = regex.matcher(mensagem);
 
@@ -107,12 +141,16 @@ public class ServidorDashboard extends Servidor {
             }
 
             DashLogger.log(nivel, "[" + processo + "] " + mensagem);
-
         } catch (Exception e) {
             DashLogger.log(TipoLog.ERRO, "Erro ao processar LOG: " + e.getMessage());
         }
     }
-
+    
+    /**
+     * 
+     * 
+     * @param obj 
+     */
     private void processarVeiculoSaida(JsonObject obj) {
         JsonObject c = obj.getAsJsonObject("conteudo");
 
@@ -219,3 +257,4 @@ public class ServidorDashboard extends Servidor {
         }
     }
 }
+

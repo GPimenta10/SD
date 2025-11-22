@@ -1,4 +1,11 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package Dashboard.Paineis;
+
+import Dashboard.Estatisticas.EstatisticasFila;
+import Dashboard.Utils.DashboardUIUtils;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -14,9 +21,10 @@ import javax.swing.JTable;
 import javax.swing.UIManager;
 import javax.swing.table.DefaultTableModel;
 
-import Dashboard.Estatisticas.EstatisticasFila;
-import Dashboard.Utils.DashboardUIUtils;
-
+/**
+ * 
+ * 
+ */
 public class PainelEstatsCruzamentos extends JPanel {
 
     private final Map<String, DefaultTableModel> modelosTabelas;

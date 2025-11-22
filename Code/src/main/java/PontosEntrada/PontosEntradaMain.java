@@ -1,33 +1,47 @@
 package PontosEntrada;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+import Logging.LogClienteDashboard;
+import Dashboard.Logs.TipoLog;
 
+import Utils.ConfigLoader;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import Dashboard.Logs.TipoLog;
-import Logging.LogClienteDashboard;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Processo responsável por gerir a entrada de veículos no sistema.
+ *
+ * Argumentos esperados:
+ *   args[0] - Carga selecionada (BAIXA, MEDIA, ALTA)
+ *   args[1] - Cenário selecionado (ALEATORIO, CAMINHO_CURTO)
  */
-public class PontosEntradasMain {
-
+public class PontosEntradaMain {
     public static void main(String[] args) throws Exception {
-        
-        // ALTERAÇÃO 1: Ler a carga a partir dos argumentos recebidos do Main
-        // Se não houver argumentos (execução manual), assume "BAIXA"
-        String cargaSelecionada = (args.length > 0) ? args[0] : "BAIXA";
-
         Gson gson = new Gson();
 
+        // Ler argumentos
+        String cargaSelecionada = (args.length > 0) ? args[0] : "BAIXA";
+        String cenarioStr = (args.length > 1) ? args[1] : "ALEATORIO";
+
+        // Converter string para enum TipoCenario
+        TipoCenario cenario;
+        try {
+            cenario = TipoCenario.valueOf(cenarioStr);
+        } catch (IllegalArgumentException e) {
+            LogClienteDashboard.enviar(TipoLog.AVISO, "Cenário '" + cenarioStr + "' desconhecido. A usar 'ALEATORIO'.");
+            cenario = TipoCenario.ALEATORIO;
+        }
+
+        JsonObject configDashboard = ConfigLoader.carregarDashboard();
+        String ipDashboard = configDashboard.get("ipServidor").getAsString();
+        int portaDashboard = configDashboard.get("portaServidor").getAsInt();
+
         // 1. LER CONFIGURAÇÃO DAS ENTRADAS
-        String jsonEntradas = readResourceAsString("configEntradas.json");
-        JsonObject rootEntradas = gson.fromJson(jsonEntradas, JsonObject.class);
-        JsonArray entradasJson = rootEntradas.getAsJsonArray("entradas");
+        JsonArray entradasJson = ConfigLoader.carregarEntradas();
 
         if (entradasJson.size() == 0) {
             LogClienteDashboard.enviar(TipoLog.ERRO, "Nenhuma entrada encontrada no ficheiro de configuração.");
@@ -39,21 +53,20 @@ public class PontosEntradasMain {
         // 2. LER CONFIGURAÇÃO DAS CARGAS
         String jsonCargas = readResourceAsString("configCargas.json");
         JsonObject rootCargas = gson.fromJson(jsonCargas, JsonObject.class);
-        
-        // Validação de segurança: se a carga não existir no JSON, usa default
+
         if (!rootCargas.getAsJsonObject("cargas").has(cargaSelecionada)) {
             LogClienteDashboard.enviar(TipoLog.AVISO, "Carga '" + cargaSelecionada + "' desconhecida. A usar 'BAIXA'.");
             cargaSelecionada = "BAIXA";
         }
-        
+
         JsonObject carga = rootCargas.getAsJsonObject("cargas").getAsJsonObject(cargaSelecionada);
 
         int totalVeiculos = carga.get("totalVeiculos").getAsInt();
         long intervaloMs = carga.get("intervaloMs").getAsLong();
 
-        // Log para confirmar que a escolha do menu foi assumida
-        LogClienteDashboard.enviar(TipoLog.SISTEMA, "Geradores: cenário " + cargaSelecionada + " | Total veículos: " + totalVeiculos +
-                " | Intervalo: " + intervaloMs + " ms");
+        LogClienteDashboard.enviar(TipoLog.SISTEMA,
+                String.format("Geradores: Carga=%s | Cenário=%s | Total=%d | Intervalo=%dms",
+                        cargaSelecionada, cenario.getDescricao(), totalVeiculos, intervaloMs));
 
         // 3. DISTRIBUIR ENTRE E1/E2/E3
         int nEntradas = entradasJson.size();
@@ -77,7 +90,10 @@ public class PontosEntradasMain {
                     host,
                     porta,
                     intervaloMs,
-                    limiteLocal
+                    limiteLocal,
+                    ipDashboard,
+                    portaDashboard,
+                    cenario
             );
         }
 
@@ -97,9 +113,13 @@ public class PontosEntradasMain {
 
     /**
      * Utilitário para ler ficheiros de recursos do JAR/Classpath.
+     *
+     * @param resourceName Nome do recurso a ler
+     * @return Conteúdo do ficheiro como String
+     * @throws IOException Se o recurso não for encontrado
      */
     private static String readResourceAsString(String resourceName) throws IOException {
-        ClassLoader cl = PontosEntradasMain.class.getClassLoader();
+        ClassLoader cl = PontosEntradaMain.class.getClassLoader();
         try (InputStream is = cl.getResourceAsStream(resourceName)) {
             if (is == null) {
                 throw new IOException("Recurso não encontrado: " + resourceName);

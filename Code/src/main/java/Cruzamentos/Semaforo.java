@@ -9,11 +9,14 @@ import Veiculo.Veiculo;
  *
  */
 public class Semaforo extends Thread {
+    private static final long INTERVALO_VERIFICACAO_FILA_MS = 100;
+    private static final long T_SEM_BASE = 300; //Variavél para o tempo base de passagem mencionado no enunciado
+
     private final int semaforoId;
+    private final String origem;
     private final MonitorSemaforos monitorSemaforos;
     private final long duracaoSinalVerdeMs;
     private final long duracaoSinalVermelhoMs = 4000;
-    private final String origem;
 
     private final FilaVeiculos filaVeiculos;
     private final Cruzamento cruzamentoAtual;
@@ -31,8 +34,22 @@ public class Semaforo extends Thread {
      * @param filaVeiculos  Fila associada
      * @param cruzamentoAtual Cruzamento ao qual pertence
      */
-    public Semaforo(int semaforoId, String origem, MonitorSemaforos monitorSemaforos, long duracaoSinalVerdeMs, FilaVeiculos filaVeiculos,
-                    Cruzamento cruzamentoAtual) {
+    public Semaforo(int semaforoId, String origem, MonitorSemaforos monitorSemaforos, long duracaoSinalVerdeMs, FilaVeiculos filaVeiculos, Cruzamento cruzamentoAtual) {
+        if (origem == null || origem.trim().isEmpty()) {
+            throw new IllegalArgumentException("Origem não pode ser null ou vazia");
+        }
+        if (monitorSemaforos == null) {
+            throw new IllegalArgumentException("MonitorSemaforos não pode ser null");
+        }
+        if (duracaoSinalVerdeMs <= 0) {
+            throw new IllegalArgumentException("Duração do sinal verde deve ser positiva");
+        }
+        if (filaVeiculos == null) {
+            throw new IllegalArgumentException("FilaVeiculos não pode ser null");
+        }
+        if (cruzamentoAtual == null) {
+            throw new IllegalArgumentException("Cruzamento não pode ser null");
+        }
 
         this.semaforoId = semaforoId;
         this.monitorSemaforos = monitorSemaforos;
@@ -103,7 +120,6 @@ public class Semaforo extends Thread {
     public void run() {
         try {
             while (semaforoAtivo) {
-                // Espera até ser a vez deste semáforo ficar VERDE
                 monitorSemaforos.esperarVez(semaforoId);
 
                 if (!semaforoAtivo) {
@@ -118,16 +134,22 @@ public class Semaforo extends Thread {
                     Veiculo veiculo = filaVeiculos.removerSeDisponivel();
 
                     if (veiculo != null) {
-                        // Envia o veículo para o próximo cruzamento
                         cruzamentoAtual.enviarVeiculoAposPassarSemaforo(veiculo, filaVeiculos);
+                        long tempoPassagem = (long) (T_SEM_BASE * veiculo.getTipo().getFatorVelocidade());
 
                         try {
-                            Thread.sleep(300);
-                        } catch (InterruptedException ignored) { break; }
+                            Thread.sleep(tempoPassagem);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
                     } else {
                         try {
-                            Thread.sleep(100);
-                        } catch (InterruptedException ignored) { break; }
+                            Thread.sleep(INTERVALO_VERIFICACAO_FILA_MS);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
                     }
                 }
 
@@ -135,12 +157,15 @@ public class Semaforo extends Thread {
 
                 try {
                     Thread.sleep(duracaoSinalVermelhoMs);
-                } catch (InterruptedException ignored) { }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
 
-                // Passa o controlo ao próximo semáforo
                 monitorSemaforos.proximaVez();
             }
-        } catch (InterruptedException ignored) {}
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**

@@ -2,15 +2,15 @@
   "cargas": {
     "BAIXA": {
       "totalVeiculos": 30,
-      "intervaloMs": 2000
+      "intervaloMs": 2500
     },
     "MEDIA": {
-      "totalVeiculos": 100,
-      "intervaloMs": 1500
+      "totalVeiculos": 60,
+      "intervaloMs": 2000
     },
     "ALTA": {
-      "totalVeiculos": 250,
-      "intervaloMs": 500
+      "totalVeiculos": 90,
+      "intervaloMs": 100
     }
   }
 }

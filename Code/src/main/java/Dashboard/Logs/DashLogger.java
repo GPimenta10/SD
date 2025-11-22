@@ -1,8 +1,7 @@
 package Dashboard.Logs;
 
-import Logging.LogSender;
 import Dashboard.Paineis.PainelLogs;
-import com.google.gson.Gson;
+import Logging.LogSender;
 
 import javax.swing.SwingUtilities;
 
@@ -20,7 +19,6 @@ public class DashLogger {
 
     private static PainelLogs painelLogs = null;
     private static String nomeProcesso = "Desconhecido";
-    private static final Gson gson = new Gson();
 
     /**
      * Inicializado pelo próprio Dashboard no arranque.
@@ -61,3 +59,4 @@ public class DashLogger {
         );
     }
 }
+

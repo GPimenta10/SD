@@ -1,5 +1,13 @@
 package Cruzamentos;
 
+import Dashboard.Estatisticas.EstatisticaCruzamento;
+import Dashboard.Estatisticas.EstatisticaSemaforo;
+import Logging.LogClienteDashboard;
+import Dashboard.Logs.TipoLog;
+import Veiculo.Veiculo;
+
+import com.google.gson.Gson;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -7,14 +15,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.google.gson.Gson;
-
-import Dashboard.Estatisticas.EstatisticaCruzamento;
-import Dashboard.Estatisticas.EstatisticaSemaforo;
-import Dashboard.Logs.TipoLog;
-import Logging.LogClienteDashboard;
-import Veiculo.Veiculo;
 
 /**
  * Classe Cruzamento responsável por:
@@ -220,8 +220,7 @@ public class Cruzamento {
 
             out.println(gson.toJson(mensagem));
         } catch (IOException e) {
-            LogClienteDashboard.enviar(TipoLog.ERRO, String.format("[%s] Falha ao notificar Dashboard: %s",
-                    nomeCruzamento, e.getMessage()));
+            LogClienteDashboard.enviar(TipoLog.ERRO, String.format("[%s] Falha ao notificar Dashboard: %s", nomeCruzamento, e.getMessage()));
         }
     }
 

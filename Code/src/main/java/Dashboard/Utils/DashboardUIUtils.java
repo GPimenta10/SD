@@ -2,23 +2,30 @@ package Dashboard.Utils;
 
 import com.google.gson.JsonArray;
 
-import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
-import java.awt.*;
 import java.util.List;
+import javax.swing.*;
+import java.awt.*;
 
+/**
+ * 
+ * 
+ */
 public class DashboardUIUtils {
-
-    // ========================
-    //   FONTES (mantidas)
-    // ========================
+    
+    /**
+     * Fontes de letra a serem usadas
+     */
     public static final Font FONTE_TITULO = new Font("Consolas", Font.BOLD, 16);
     public static final Font FONTE_CONSOLE = new Font("Consolas", Font.PLAIN, 13);
 
-    // ========================
-    //   TÍTULO DOS PAINÉIS
-    // ========================
+    /**
+     * Método para padronizar titulos dos paineis
+     * 
+     * @param panel Painel onde se quer aplicar uniformização
+     * @param titulo Titulo a inserir
+     */
     public static void aplicarTituloPainel(JPanel panel, String titulo) {
         panel.setBorder(BorderFactory.createTitledBorder(
                 UIManager.getBorder("TitledBorder.border"),
@@ -29,9 +36,11 @@ public class DashboardUIUtils {
         ));
     }
 
-    // ========================
-    //   TABELAS MODERNAS
-    // ========================
+    /**
+     * Método para padronizar tabelas
+     * 
+     * @param tabela Tabela a aplicar alterações
+     */
     public static void configurarTabela(JTable tabela) {
         tabela.setFont(FONTE_CONSOLE.deriveFont(Font.BOLD, 12f));
         tabela.setRowHeight(26);
@@ -50,7 +59,12 @@ public class DashboardUIUtils {
             tabela.getColumnModel().getColumn(i).setCellRenderer(renderer);
         }
     }
-
+    
+    /**
+     * 
+     * 
+     * @return 
+     */
     public static DefaultTableCellRenderer criarRendererPadrao() {
         return new DefaultTableCellRenderer() {
             @Override
@@ -67,25 +81,32 @@ public class DashboardUIUtils {
         };
     }
 
-    // ========================
-    //   SCROLL MODERNO
-    // ========================
+    /**
+     * 
+     * 
+     * @param scroll 
+     */
     public static void configurarScroll(JScrollPane scroll) {
         scroll.setBorder(UIManager.getBorder("ScrollPane.border"));
         scroll.getViewport().setBackground(UIManager.getColor("Panel.background"));
     }
 
-    // ========================
-    //   LOGS E SERVIDORES
-    // ========================
+    /**
+     * 
+     * 
+     * @param comp 
+     */
     public static void estilizarTextoPainel(JComponent comp) {
         comp.setFont(FONTE_CONSOLE);
         comp.setForeground(new Color(255, 255, 255));
     }
 
-    // ========================
-    //   JSON UTILS (NOVO)
-    // ========================
+    /**
+     * 
+     * 
+     * @param lista
+     * @return 
+     */
     public static JsonArray toJsonArray(List<String> lista) {
         JsonArray arr = new JsonArray();
         for (String s : lista) {
@@ -94,3 +115,4 @@ public class DashboardUIUtils {
         return arr;
     }
 }
+

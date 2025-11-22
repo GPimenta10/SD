@@ -1,18 +1,44 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package Dashboard.Utils;
 
-import javax.swing.*;
 import javax.swing.plaf.basic.BasicScrollBarUI;
+import javax.swing.*;
 import java.awt.*;
 
+/**
+ * 
+ * 
+ */
 public class MinimalScrollBarUI extends BasicScrollBarUI {
 
     private static final int LARGURA_BARRA = 6;
 
-    // 👍 Cores agora vêm do tema
     private Color corThumb;
     private Color corThumbHover;
     private Color corTrack;
-
+    
+    /**
+     * 
+     * 
+     * @param c
+     * @return 
+     */
+    @Override
+    public Dimension getPreferredSize(JComponent c) {
+        if (scrollbar.getOrientation() == JScrollBar.VERTICAL) {
+            return new Dimension(LARGURA_BARRA, super.getPreferredSize(c).height);
+        } else {
+            return new Dimension(super.getPreferredSize(c).width, LARGURA_BARRA);
+        }
+    }
+    
+    /**
+     * 
+     * 
+     */
     @Override
     protected void configureScrollBarColors() {
 
@@ -28,26 +54,35 @@ public class MinimalScrollBarUI extends BasicScrollBarUI {
         this.thumbColor = corThumb;
         this.trackColor = corTrack;
     }
-
+    
+    /**
+     * 
+     * @param orientation
+     * @return 
+     */
     @Override
     protected JButton createDecreaseButton(int orientation) {
         return criarBotaoVazio();
     }
-
+    
+    /**
+     * 
+     * 
+     * @param orientation
+     * @return 
+     */
     @Override
     protected JButton createIncreaseButton(int orientation) {
         return criarBotaoVazio();
     }
-
-    private JButton criarBotaoVazio() {
-        JButton botao = new JButton();
-        botao.setPreferredSize(new Dimension(0, 0));
-        botao.setOpaque(false);
-        botao.setContentAreaFilled(false);
-        botao.setBorderPainted(false);
-        return botao;
-    }
-
+        
+    /**
+     * 
+     * 
+     * @param g
+     * @param c
+     * @param r 
+     */
     @Override
     protected void paintThumb(Graphics g, JComponent c, Rectangle r) {
 
@@ -62,7 +97,14 @@ public class MinimalScrollBarUI extends BasicScrollBarUI {
         g2.fillRoundRect(r.x, r.y, r.width, r.height, 15, 15);
         g2.dispose();
     }
-
+    
+    /**
+     * 
+     * 
+     * @param g
+     * @param c
+     * @param r 
+     */
     @Override
     protected void paintTrack(Graphics g, JComponent c, Rectangle r) {
         Graphics2D g2 = (Graphics2D) g.create();
@@ -70,13 +112,17 @@ public class MinimalScrollBarUI extends BasicScrollBarUI {
         g2.fillRect(r.x, r.y, r.width, r.height);
         g2.dispose();
     }
-
-    @Override
-    public Dimension getPreferredSize(JComponent c) {
-        if (scrollbar.getOrientation() == JScrollBar.VERTICAL) {
-            return new Dimension(LARGURA_BARRA, super.getPreferredSize(c).height);
-        } else {
-            return new Dimension(super.getPreferredSize(c).width, LARGURA_BARRA);
-        }
+        
+    /**
+     * 
+     * @return 
+     */
+    private JButton criarBotaoVazio() {
+        JButton botao = new JButton();
+        botao.setPreferredSize(new Dimension(0, 0));
+        botao.setOpaque(false);
+        botao.setContentAreaFilled(false);
+        botao.setBorderPainted(false);
+        return botao;
     }
 }

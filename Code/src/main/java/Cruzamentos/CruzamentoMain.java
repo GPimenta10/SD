@@ -12,13 +12,11 @@ import Utils.ConfigLoader;
  * Processo principal para iniciar um cruzamento específico do sistema de tráfego.
  *
  * Este processo é responsável por:
- * - Receber o nome do cruzamento como argumento (ex: "Cr1", "Cr2")
- * - Carregar a configuração do cruzamento do ficheiro configMapa.json
- * - Inicializar o cruzamento com suas ligações para outros nós
- * - Manter o processo ativo até receber sinal de encerramento
+ *  Receber o nome do cruzamento como argumento (ex: "Cr1", "Cr2")
+ *  Carregar a configuração do cruzamento do ficheiro configMapa.json
+ *  Inicializar o cruzamento com suas ligações para outros nós
+ *  Manter o processo ativo até receber sinal de encerramento
  *
- * Uso: java Cruzamentos.CruzamentoMain <nomeCruzamento>
- * Exemplo: java Cruzamentos.CruzamentoMain Cr3
  */
 public class CruzamentoMain {
 
@@ -74,7 +72,6 @@ public class CruzamentoMain {
             manterProcessoAtivo();
 
         } catch (Exception e) {
-            System.err.println("[CruzamentoMain] ERRO FATAL: " + e.getMessage());
             LogClienteDashboard.enviar(TipoLog.ERRO, "Erro fatal: " + e.getMessage());
             e.printStackTrace();
             System.exit(1);

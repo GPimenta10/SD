@@ -1,7 +1,7 @@
 package Saida;
 
-import Dashboard.Logs.TipoLog;
 import Logging.LogClienteDashboard;
+import Dashboard.Logs.TipoLog;
 import Veiculo.Veiculo;
 
 import com.google.gson.Gson;

@@ -1,10 +1,10 @@
 package Saida;
 
-import com.google.gson.JsonObject;
-
-import Dashboard.Logs.TipoLog;
 import Logging.LogClienteDashboard;
+import Dashboard.Logs.TipoLog;
 import Utils.ConfigLoader;
+
+import com.google.gson.JsonObject;
 
 /**
  * Processo principal para a Saída do sistema de tráfego.
@@ -18,10 +18,10 @@ public class SaidaMain {
         LogClienteDashboard.enviar(TipoLog.SISTEMA, "Processo Saída iniciado");
 
         JsonObject config = ConfigLoader.carregarSaida();
-        
+
         // Ler IP e Porta da configuração
-        String ipServidor = config.has("ipServidor") 
-                ? config.get("ipServidor").getAsString() 
+        String ipServidor = config.has("ipServidor")
+                ? config.get("ipServidor").getAsString()
                 : "localhost";
         int portaServidor = config.get("portaServidor").getAsInt();
 
@@ -32,7 +32,7 @@ public class SaidaMain {
         saida.iniciar();
 
         LogClienteDashboard.enviar(TipoLog.SISTEMA, String.format("Saída configurada: local %s:%d → Dashboard %s:%d",
-                        ipServidor, portaServidor, ipDashboard, portaDashboard)
+                ipServidor, portaServidor, ipDashboard, portaDashboard)
         );
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

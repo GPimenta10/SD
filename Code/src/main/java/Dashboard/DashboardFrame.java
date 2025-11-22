@@ -1,25 +1,29 @@
 package Dashboard;
 
-import Dashboard.Logs.DashLogger;
-import Dashboard.Paineis.*;
-import Dashboard.Utils.DashboardUIUtils;
-import Dashboard.Utils.MinimalScrollBarUI;
-
-// Novos imports devido à refatorização do pacote Estatisticas
 import Dashboard.Estatisticas.GestorEstatisticas;
 import Dashboard.Estatisticas.ReceiverEstatisticas;
 import Dashboard.Estatisticas.EstatisticasGlobais;
 import Dashboard.Estatisticas.EstatisticasFila;
 import Dashboard.Estatisticas.EstatisticasSaida;
 
+import Dashboard.Utils.MinimalScrollBarUI;
+import Dashboard.Utils.DashboardUIUtils;
+import Dashboard.Logs.DashLogger;
+import Dashboard.Paineis.*;
+
+import Utils.ProcessCleaner;
+
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.Map;
 
+/**
+ * Frame principal do Dashboard.
+ * Ao ser fechado, encerra todos os processos do sistema.
+ */
 public class DashboardFrame extends JFrame implements ReceiverEstatisticas {
-
-    private final GestorEstatisticas gestor;
-
     private final PainelEstatsGlobais painelEstatsGlobais;
     private final PainelMapa painelMapa;
     private final PainelEstatsSaida painelEstatsSaida;
@@ -33,12 +37,12 @@ public class DashboardFrame extends JFrame implements ReceiverEstatisticas {
 
     public DashboardFrame(GestorEstatisticas gestor) {
         super("Dashboard - Sistema de Tráfego Urbano");
-        this.gestor = gestor;
-
-        // Registar este frame como listener do gestor
+  
         gestor.adicionarOuvinte(this);
 
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        configurarFechamento();
+
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         setLayout(new BorderLayout(3, 3));
         getContentPane().setBackground(BG);
@@ -52,7 +56,6 @@ public class DashboardFrame extends JFrame implements ReceiverEstatisticas {
         painelEstatsCruzamentos = new PainelEstatsCruzamentos();
         painelResumoCruzamento = new PainelResumoCruzamento();
 
-        painelMapa.setDashboard(this);
         DashLogger.inicializar(painelLogs);
 
         // Coluna esquerda
@@ -101,9 +104,59 @@ public class DashboardFrame extends JFrame implements ReceiverEstatisticas {
         setVisible(true);
     }
 
-    // ==================================================
-    // CALLBACKS DO GESTOR (Tipos Atualizados)
-    // ==================================================
+    /**
+     * Configura o comportamento ao fechar a janela.
+     * Pergunta ao utilizador se deseja encerrar e termina todos os processos.
+     */
+    private void configurarFechamento() {
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                int opcao = JOptionPane.showConfirmDialog(
+                        DashboardFrame.this,
+                        "Deseja encerrar o sistema de tráfego?\n\nTodos os processos serão terminados.",
+                        "Confirmar Encerramento",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.QUESTION_MESSAGE
+                );
+
+                if (opcao == JOptionPane.YES_OPTION) {
+                    System.out.println("[Dashboard] A encerrar todos os processos do sistema...");
+                    ProcessCleaner.terminarTodosProcessosSistema();
+                    dispose();
+                    System.exit(0);
+                }
+            }
+        });
+    }
+
+    public PainelEstatsGlobais getPainelEstatisticas() {
+        return painelEstatsGlobais;
+    }
+
+    public PainelMapa getPainelMapa() {
+        return painelMapa;
+    }
+
+    public PainelEstatsSaida getPainelEstatisticasTipo() {
+        return painelEstatsSaida;
+    }
+
+    public PainelInfoSaidaVeiculos getPainelVeiculos() {
+        return painelInfoSaidaVeiculos;
+    }
+
+    public PainelServidores getPainelServidores() {
+        return painelServidores;
+    }
+
+    public PainelEstatsCruzamentos getPainelEstatisticasCruzamentos() {
+        return painelEstatsCruzamentos;
+    }
+
+    public PainelResumoCruzamento getPainelResumoCruzamento() {
+        return painelResumoCruzamento;
+    }
 
     @Override
     public void onEstatisticasGlobaisAtualizadas(EstatisticasGlobais globais) {
@@ -111,11 +164,8 @@ public class DashboardFrame extends JFrame implements ReceiverEstatisticas {
     }
 
     @Override
-    public void onEstatisticasCruzamentoAtualizadas(String cruzamento,
-                                                    Map<String, EstatisticasFila> filas) {
-        SwingUtilities.invokeLater(() ->
-                painelEstatsCruzamentos.atualizarCruzamento(cruzamento, filas)
-        );
+    public void onEstatisticasCruzamentoAtualizadas(String cruzamento, Map<String, EstatisticasFila> filas) {
+        SwingUtilities.invokeLater(() -> painelEstatsCruzamentos.atualizarCruzamento(cruzamento, filas));
     }
 
     @Override
@@ -127,10 +177,6 @@ public class DashboardFrame extends JFrame implements ReceiverEstatisticas {
     public void onResumoCruzamentosAtualizado(Map<String, Map<String, Integer>> resumo) {
         SwingUtilities.invokeLater(() -> painelResumoCruzamento.atualizar(resumo));
     }
-
-    // ==================================================
-    // HELPERS DE LAYOUT
-    // ==================================================
 
     private JScrollPane criarScroll(JComponent componente) {
         JScrollPane scroll = new JScrollPane(componente);
@@ -164,15 +210,4 @@ public class DashboardFrame extends JFrame implements ReceiverEstatisticas {
 
         return wrapper;
     }
-
-    // ==================================================
-    // GETTERS
-    // ==================================================
-    public PainelEstatsGlobais getPainelEstatisticas() { return painelEstatsGlobais; }
-    public PainelMapa getPainelMapa() { return painelMapa; }
-    public PainelEstatsSaida getPainelEstatisticasTipo() { return painelEstatsSaida; }
-    public PainelInfoSaidaVeiculos getPainelVeiculos() { return painelInfoSaidaVeiculos; }
-    public PainelServidores getPainelServidores() { return painelServidores; }
-    public PainelEstatsCruzamentos getPainelEstatisticasCruzamentos() { return painelEstatsCruzamentos; }
-    public PainelResumoCruzamento getPainelResumoCruzamento() { return painelResumoCruzamento; }
 }

@@ -5,14 +5,15 @@ package Veiculo;
  * Relações de tempo respeitando o enunciado
  */
 public enum TipoVeiculo {
-    MOTA(0.5),      // Metade do tempo do carro
+    MOTA(0.5),
     CARRO(1.0),     // Tempo base
-    CAMIAO(2.0);  // Dobro do tempo do carro (4 vezes o tempo da mota)
+    CAMIAO(2.0);
 
     private final double fatorVelocidade;
 
     /**
      * Construtor do enum
+     *
      * @param fator Fator multiplicador do tempo base
      */
     TipoVeiculo(double fator) {

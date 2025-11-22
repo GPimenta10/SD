@@ -1,6 +1,5 @@
 package Logging;
 
-import com.google.gson.Gson;
 import Dashboard.Logs.TipoLog;
 
 /**
@@ -11,7 +10,6 @@ import Dashboard.Logs.TipoLog;
  */
 public class LogClienteDashboard {
 
-    private static final Gson gson = new Gson();
     private static String nomeProcesso = "Desconhecido";
 
     /**
