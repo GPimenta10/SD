@@ -1,10 +1,10 @@
 ## Desenvolvimento
+- [ ] Comentar código
 - [ ] Rever classes e simplificar partes das mesmas (ter em conta o FPOO)
 - [ ] Confirmar se o Json está a ser usado em todo o código
-- [ ] Adicionar mais um modo de simulação  
-- [ ] Criar menu para escolher modo
-- [ ] Adicionar código para ao fechar dashboard encerrar o programa. Terminar processos
-- [ ] Comentar código
+- [x] ~~Adicionar mais um modo de simulação~~
+- [x] ~~Criar menu para escolher modo~~
+- [x] ~~Adicionar código para ao fechar dashboard encerrar o programa. Terminar processos~~ 
 - [X] ~~Criar menu para escolher carga~~
 - [X] ~~Tentar garantir que ao iniciar o main ele termine todos os processos java na máquina excepto aquele que está a ser executado no momento~~
 - [x] ~~Retirar limite de fila / Aumentar limite~~
